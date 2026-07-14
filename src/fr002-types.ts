@@ -5,7 +5,7 @@ export type PlanStatus = 'draft' | 'confirmed'
 export type PlanSource = 'manual' | 'candidate_draw'
 export type InventoryStatus = 'active' | 'depleted'
 export type CookAvailabilityStatus = 'ready' | 'partial' | 'missing' | 'unit_confirmation_required'
-export type OperationType = 'complete_purchase' | 'save_cook_session'
+export type OperationType = 'complete_purchase' | 'save_cook_session' | 'confirm_receipt_import'
 
 export type WeeklyPlanItem = {
   id: string
@@ -62,7 +62,7 @@ export type InventoryLot = {
 
 export type CookInventoryOption = {
   inventoryId: string
-  ingredientId: string
+  ingredientId: string | null
   name: string
   quantity: number
   unit: string
@@ -165,6 +165,13 @@ export type SaveCookInput = {
   totalServings: number
   note: string
   items: SaveCookItemInput[]
+  unmatchedItems: Array<{
+    inventoryId: string
+    displayName: string
+    quantityUsed: number
+    unit: string
+    note: string
+  }>
 }
 
 export type SavedCookSession = {

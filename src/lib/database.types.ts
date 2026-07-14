@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       body_metrics: {
@@ -160,6 +135,99 @@ export type Database = {
           },
         ]
       }
+      cook_unmatched_items: {
+        Row: {
+          cook_session_id: string
+          created_at: string
+          display_name: string
+          id: string
+          inventory_id: string
+          note: string | null
+          quantity_used: number
+          unit: string
+        }
+        Insert: {
+          cook_session_id: string
+          created_at?: string
+          display_name: string
+          id?: string
+          inventory_id: string
+          note?: string | null
+          quantity_used: number
+          unit: string
+        }
+        Update: {
+          cook_session_id?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          inventory_id?: string
+          note?: string | null
+          quantity_used?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cook_unmatched_items_cook_session_id_fkey"
+            columns: ["cook_session_id"]
+            isOneToOne: false
+            referencedRelation: "cook_nutrition"
+            referencedColumns: ["cook_session_id"]
+          },
+          {
+            foreignKeyName: "cook_unmatched_items_cook_session_id_fkey"
+            columns: ["cook_session_id"]
+            isOneToOne: false
+            referencedRelation: "cook_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cook_unmatched_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          ingredient_id: string
+          normalized_alias: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          normalized_alias: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          normalized_alias?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_aliases_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
           carb_per_100g: number | null
@@ -223,6 +291,7 @@ export type Database = {
           price: number | null
           purchase_date: string | null
           quantity: number
+          receipt_item_id: string | null
           receipt_raw_name: string | null
           status: string
           storage: string | null
@@ -242,6 +311,7 @@ export type Database = {
           price?: number | null
           purchase_date?: string | null
           quantity: number
+          receipt_item_id?: string | null
           receipt_raw_name?: string | null
           status: string
           storage?: string | null
@@ -261,6 +331,7 @@ export type Database = {
           price?: number | null
           purchase_date?: string | null
           quantity?: number
+          receipt_item_id?: string | null
           receipt_raw_name?: string | null
           status?: string
           storage?: string | null
@@ -275,6 +346,13 @@ export type Database = {
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_receipt_item_id_fkey"
+            columns: ["receipt_item_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_items"
             referencedColumns: ["id"]
           },
         ]
@@ -475,6 +553,157 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      receipt_imports: {
+        Row: {
+          confirmed_at: string | null
+          content_type: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          file_hash: string | null
+          file_name: string
+          file_size_bytes: number
+          id: string
+          merchant_name: string | null
+          purchased_on: string | null
+          raw_text: string | null
+          recognition_provider: string | null
+          source_type: string
+          status: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          content_type: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          file_hash?: string | null
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          merchant_name?: string | null
+          purchased_on?: string | null
+          raw_text?: string | null
+          recognition_provider?: string | null
+          source_type?: string
+          status?: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          content_type?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          file_hash?: string | null
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          merchant_name?: string | null
+          purchased_on?: string | null
+          raw_text?: string | null
+          recognition_provider?: string | null
+          source_type?: string
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      receipt_items: {
+        Row: {
+          action: string
+          confirmed_name: string | null
+          confirmed_quantity: number | null
+          confirmed_unit: string | null
+          created_at: string
+          id: string
+          ingredient_id: string | null
+          inventory_id: string | null
+          match_confidence: number | null
+          match_status: string
+          position: number
+          raw_line: string | null
+          raw_name: string
+          raw_price: number | null
+          raw_quantity: number | null
+          raw_unit: string | null
+          receipt_import_id: string
+          storage: string | null
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          confirmed_name?: string | null
+          confirmed_quantity?: number | null
+          confirmed_unit?: string | null
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          inventory_id?: string | null
+          match_confidence?: number | null
+          match_status?: string
+          position: number
+          raw_line?: string | null
+          raw_name: string
+          raw_price?: number | null
+          raw_quantity?: number | null
+          raw_unit?: string | null
+          receipt_import_id: string
+          storage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          confirmed_name?: string | null
+          confirmed_quantity?: number | null
+          confirmed_unit?: string | null
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          inventory_id?: string | null
+          match_confidence?: number | null
+          match_status?: string
+          position?: number
+          raw_line?: string | null
+          raw_name?: string
+          raw_price?: number | null
+          raw_quantity?: number | null
+          raw_unit?: string | null
+          receipt_import_id?: string
+          storage?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_items_receipt_import_id_fkey"
+            columns: ["receipt_import_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_imports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipe_candidates: {
         Row: {
@@ -865,11 +1094,33 @@ export type Database = {
       }
     }
     Functions: {
+      apply_receipt_recognition: {
+        Args: {
+          p_items: Json
+          p_provider: string
+          p_raw_text: string
+          p_receipt_import_id: string
+        }
+        Returns: Json
+      }
       complete_purchase: {
         Args: {
           p_idempotency_key: string
           p_items: Json
           p_shopping_list_id: string
+        }
+        Returns: Json
+      }
+      confirm_receipt_import: {
+        Args: { p_idempotency_key: string; p_receipt_import_id: string }
+        Returns: Json
+      }
+      create_receipt_import: {
+        Args: {
+          p_content_type: string
+          p_file_hash?: string
+          p_file_name: string
+          p_file_size_bytes: number
         }
         Returns: Json
       }
@@ -887,6 +1138,10 @@ export type Database = {
         Args: { p_idempotency_key: string; p_operation_type: string }
         Returns: Json
       }
+      get_receipt_import: {
+        Args: { p_receipt_import_id: string }
+        Returns: Json
+      }
       get_shopping_list: { Args: { p_weekly_plan_id: string }; Returns: Json }
       get_today: { Args: { p_date: string }; Returns: Json }
       get_weekly_plan: { Args: { p_week_start: string }; Returns: Json }
@@ -894,7 +1149,17 @@ export type Database = {
         Args: { p_query?: string; p_status?: string }
         Returns: Json
       }
+      list_receipt_imports: { Args: { p_limit?: number }; Returns: Json }
       list_recipe_candidates: { Args: never; Returns: Json }
+      mark_receipt_import_failed: {
+        Args: {
+          p_error_code: string
+          p_error_message?: string
+          p_receipt_import_id: string
+        }
+        Returns: undefined
+      }
+      normalize_receipt_name: { Args: { p_name: string }; Returns: string }
       save_cook_session: {
         Args: {
           p_cooked_on: string
@@ -904,6 +1169,7 @@ export type Database = {
           p_note: string
           p_recipe_id: string
           p_total_servings: number
+          p_unmatched_items?: Json
         }
         Returns: Json
       }
@@ -965,6 +1231,10 @@ export type Database = {
           p_note: string
         }
         Returns: undefined
+      }
+      update_receipt_items: {
+        Args: { p_items: Json; p_receipt_import_id: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -1094,9 +1364,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

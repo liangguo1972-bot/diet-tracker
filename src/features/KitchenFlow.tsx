@@ -9,8 +9,10 @@ import { CookPage } from '../pages/CookPage'
 import { InventoryPage } from '../pages/InventoryPage'
 import { KitchenHomePage } from '../pages/KitchenHomePage'
 import { SaveCookPage } from '../pages/SaveCookPage'
+import { ReceiptImportPage } from '../pages/ReceiptImportPage'
+import { ReceiptReviewPage } from '../pages/ReceiptReviewPage'
 
-type KitchenScreen = 'home' | 'inventory' | 'cook' | 'picker' | 'save'
+type KitchenScreen = 'home' | 'inventory' | 'cook' | 'picker' | 'save' | 'receipt-import' | 'receipt-review'
 type PickerTarget = { ingredientId: string; ingredientName: string; usageIndex?: number }
 
 export function KitchenFlow({ onTab, onSessionExpired }: {
@@ -25,6 +27,7 @@ export function KitchenFlow({ onTab, onSessionExpired }: {
   const [cookError, setCookError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
+  const [receiptImportId, setReceiptImportId] = useState<string | null>(null)
 
   async function loadCook(target: WeeklyPlanItem) {
     setCookTarget(target)
@@ -68,15 +71,18 @@ export function KitchenFlow({ onTab, onSessionExpired }: {
       return
     }
     if (cookDraft && (screen === 'cook' || screen === 'picker' || screen === 'save') && !window.confirm('当前做饭草稿尚未保存，确认离开吗？')) return
+    if (screen === 'receipt-review' && !window.confirm('当前小票确认内容尚未入库，确认离开吗？')) return
     onTab(tab)
   }
 
-  if (screen === 'inventory') return <InventoryPage onBack={() => setScreen('home')} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  if (screen === 'inventory') return <InventoryPage refreshKey={refreshKey} notice={notice} onReceiptImport={() => { setNotice(null); setScreen('receipt-import') }} onBack={() => setScreen('home')} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  if (screen === 'receipt-import') return <ReceiptImportPage onBack={() => setScreen('inventory')} onInventory={() => setScreen('inventory')} onReview={(id) => { setReceiptImportId(id); setScreen('receipt-review') }} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  if (screen === 'receipt-review' && receiptImportId) return <ReceiptReviewPage receiptImportId={receiptImportId} onBack={() => setScreen('receipt-import')} onConfirmed={(count) => { setReceiptImportId(null); setNotice(`小票已确认，${count} 项库存已写入。`); setRefreshKey((value) => value + 1); setScreen('inventory') }} onTab={changeTab} onSessionExpired={onSessionExpired} />
   if (screen === 'picker' && cookDraft && pickerTarget) {
     const ingredient = cookDraft.ingredients.find((item) => item.ingredientId === pickerTarget.ingredientId)
     return <CookInventoryPickerPage ingredientId={pickerTarget.ingredientId} ingredientName={pickerTarget.ingredientName} selectedIds={ingredient?.usages.map((usage) => usage.inventoryId) ?? []} onBack={() => setScreen('cook')} onSelect={selectInventory} onTab={changeTab} onSessionExpired={onSessionExpired} />
   }
   if (screen === 'save' && cookDraft) return <SaveCookPage draft={cookDraft} onDraft={setCookDraft} onBack={() => setScreen('cook')} onSaved={saved} onTab={changeTab} onSessionExpired={onSessionExpired} />
   if (screen === 'cook') return <CookPage draft={cookDraft} loading={cookLoading} error={cookError} onRetry={() => { if (cookTarget) void loadCook(cookTarget) }} onDraft={setCookDraft} onPick={pickInventory} onBack={() => setScreen('home')} onContinue={() => setScreen('save')} onTab={changeTab} />
-  return <KitchenHomePage refreshKey={refreshKey} notice={notice} onInventory={() => setScreen('inventory')} onCook={(item) => { setNotice(null); void loadCook(item) }} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  return <KitchenHomePage refreshKey={refreshKey} notice={notice} onInventory={() => setScreen('inventory')} onReceiptImport={() => { setNotice(null); setScreen('receipt-import') }} onCook={(item) => { setNotice(null); void loadCook(item) }} onTab={changeTab} onSessionExpired={onSessionExpired} />
 }

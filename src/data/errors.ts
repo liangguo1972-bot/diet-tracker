@@ -8,6 +8,13 @@ export type Fr002ErrorCode =
   | 'CONFLICT'
   | 'IDEMPOTENCY_CONFLICT'
   | 'NETWORK_UNKNOWN'
+  | 'RECEIPT_FILE_INVALID'
+  | 'OCR_NOT_CONFIGURED'
+  | 'OCR_UNAVAILABLE'
+  | 'OCR_RESPONSE_INVALID'
+  | 'RECEIPT_FILE_UNAVAILABLE'
+  | 'RECEIPT_RECOGNITION_INVALID'
+  | 'STATUS_CONFLICT'
 
 const fr002Messages: Record<Fr002ErrorCode, string> = {
   INVALID_REFERENCE: '所选数据已经失效，请重新加载后选择。',
@@ -17,6 +24,13 @@ const fr002Messages: Record<Fr002ErrorCode, string> = {
   CONFLICT: '数据状态已经变化，请重新加载后决定是否继续。',
   IDEMPOTENCY_CONFLICT: '同一次操作的内容已经变化，请先确认原操作结果。',
   NETWORK_UNKNOWN: '网络中断，服务端结果暂时未知。草稿和本次操作编号已保留。',
+  RECEIPT_FILE_INVALID: '照片格式或大小不符合要求。请选择 10MB 以内的 JPEG、PNG 或 WebP。',
+  OCR_NOT_CONFIGURED: '照片已安全保存，但识别服务尚未配置。可以稍后使用同一条记录重试。',
+  OCR_UNAVAILABLE: '小票识别服务暂时不可用。上传记录已经保留。',
+  OCR_RESPONSE_INVALID: '识别结果格式无效。上传记录已经保留。',
+  RECEIPT_FILE_UNAVAILABLE: '无法读取已上传的照片，请重新选择原照片。',
+  RECEIPT_RECOGNITION_INVALID: '小票识别请求无效，请重新选择照片。',
+  STATUS_CONFLICT: '小票任务状态已经变化，请重新加载。',
 }
 
 export class Fr002Error extends Error {
@@ -51,7 +65,7 @@ export function toDataError(error: SupabaseLikeError): Error {
   if (error.code === '28000' || /AUTH_REQUIRED|FORBIDDEN|authentication required|jwt|not authenticated|permission denied for function/i.test(error.message)) {
     return new AuthenticationRequiredError()
   }
-  const code = (['INVALID_REFERENCE', 'QUANTITY_INVALID', 'UNIT_CONFLICT', 'INSUFFICIENT_STOCK', 'CONFLICT', 'IDEMPOTENCY_CONFLICT'] as const)
+  const code = (['INVALID_REFERENCE', 'QUANTITY_INVALID', 'UNIT_CONFLICT', 'INSUFFICIENT_STOCK', 'CONFLICT', 'IDEMPOTENCY_CONFLICT', 'RECEIPT_FILE_INVALID', 'OCR_NOT_CONFIGURED', 'OCR_UNAVAILABLE', 'OCR_RESPONSE_INVALID', 'RECEIPT_FILE_UNAVAILABLE', 'RECEIPT_RECOGNITION_INVALID', 'STATUS_CONFLICT'] as const)
     .find((candidate) => error.message.includes(candidate))
   if (code) return new Fr002Error(code)
   if (/selectable ingredient not found|cook session not found/i.test(error.message)) return new MealComponentNotFoundError()

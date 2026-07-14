@@ -6,10 +6,11 @@ import { isAuthenticationRequired } from '../data/errors'
 import type { KitchenHomeData, WeeklyPlanItem } from '../fr002-types'
 import { amount, localDateKey, prettyDate, weekday } from '../lib/fr002'
 
-export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onTab, onSessionExpired }: {
+export function KitchenHomePage({ refreshKey, notice, onInventory, onReceiptImport, onCook, onTab, onSessionExpired }: {
   refreshKey: number
   notice: string | null
   onInventory: () => void
+  onReceiptImport: () => void
   onCook: (item: WeeklyPlanItem) => void
   onTab: (tab: MainTab) => void
   onSessionExpired: () => void
@@ -34,19 +35,22 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onTab
   return (
     <main className="phone page kitchen-page">
       <div className="page-content">
-        <header className="topbar"><h1>厨房</h1><span className="date-note">{prettyDate(localDateKey())}</span></header>
+        <header className="kitchen-hero"><div><span className="eyebrow-label">Daily nourishment</span><h1>厨房</h1></div><button className="date-note" onClick={onInventory}>冰箱库存</button></header>
+        <div className="week-scope"><span>本周</span><b>{prettyDate(localDateKey())}</b><small>采购、做饭和成品都使用当前自然周</small></div>
         {notice && <div className="success-banner" role="status">{notice}</div>}
         {loading && <LoadingState rows={6} />}
         {error && <ErrorState message={error} onRetry={load} />}
         {data && !loading && !error && (
           <>
+            <section className="add-inventory-card">
+              <div><span className="eyebrow-label">添加冰箱库存</span><h2>把刚买的东西放进厨房</h2></div>
+              <button onClick={onReceiptImport}>拍照扫描小票</button>
+              <button disabled>PDF · 暂未开放</button>
+            </section>
+
             <section className="section-card feature-section">
-              <div className="section-heading"><span>冰箱库存</span><button className="text-button neutral" onClick={onInventory}>查看全部</button></div>
-              <button className="summary-grid" onClick={onInventory} aria-label="查看冰箱库存">
-                <span><b>{data.inventorySummary.activeLots}</b><small>可用批次</small></span>
-                <span><b>{data.inventorySummary.expiringLots}</b><small>两天内到期</small></span>
-                <span><b>{data.inventorySummary.depletedLots}</b><small>已用尽</small></span>
-              </button>
+              <div className="section-heading"><span>当前库存</span><button className="text-button neutral" onClick={onInventory}>查看全部</button></div>
+              <button className="summary-grid" onClick={onInventory} aria-label="查看冰箱库存"><span><b>{data.inventorySummary.activeLots}</b><small>可用批次</small></span><span><b>{data.inventorySummary.expiringLots}</b><small>两天内到期</small></span><span><b>{data.inventorySummary.depletedLots}</b><small>已用尽</small></span></button>
             </section>
 
             <section>

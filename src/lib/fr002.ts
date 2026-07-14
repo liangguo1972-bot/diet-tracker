@@ -97,19 +97,27 @@ export const isCookDraftComplete = (draft: CookDraft) => draft.ingredients.lengt
 )
 
 export function toSaveCookInput(draft: CookDraft): SaveCookInput {
+  const usages = draft.ingredients.flatMap((ingredient) => ingredient.usages.map((usage) => ({ ingredient, usage })))
   return {
     recipeId: draft.recipeId,
     name: draft.name.trim(),
     cookedOn: draft.cookedOn,
     totalServings: draft.totalServings,
     note: draft.note.trim(),
-    items: draft.ingredients.flatMap((ingredient) => ingredient.usages.map((usage) => ({
+    items: usages.filter(({ usage }) => usage.ingredientId !== null).map(({ ingredient, usage }) => ({
       inventoryId: usage.inventoryId,
       ingredientId: ingredient.ingredientId,
       quantityUsed: usage.quantityUsed ?? 0,
       unit: usage.unit,
       note: usage.note.trim(),
-    }))),
+    })),
+    unmatchedItems: usages.filter(({ usage }) => usage.ingredientId === null).map(({ usage }) => ({
+      inventoryId: usage.inventoryId,
+      displayName: usage.name,
+      quantityUsed: usage.quantityUsed ?? 0,
+      unit: usage.unit,
+      note: usage.note.trim(),
+    })),
   }
 }
 

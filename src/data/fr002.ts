@@ -264,7 +264,7 @@ export const fr002Adapter = {
     if (error) throw toDataError(error)
     return (data ?? []).map((item) => ({
       inventoryId: item.inventory_id,
-      ingredientId: item.ingredient_id,
+      ingredientId: item.ingredient_id || null,
       name: item.name,
       quantity: Number(item.quantity),
       unit: item.unit,
@@ -343,6 +343,7 @@ export const fr002Adapter = {
         p_total_servings: input.totalServings,
         p_note: input.note,
         p_items: input.items as unknown as Json,
+        p_unmatched_items: input.unmatchedItems as unknown as Json,
         p_idempotency_key: idempotencyKey,
       })
       if (error) throw toOperationError(error)

@@ -1,6 +1,6 @@
 # Diet Tracker · 前后端数据契约
 
-最后更新：2026-07-13
+最后更新：2026-07-14
 
 ## 1. 这份文档的作用
 
@@ -28,8 +28,9 @@ Figma 可以提出新的数据需求，但不能自行增加数据库字段。Ex
 7. 采购完成写入真实库存批次。
 8. 从库存做饭，保存真实成品并扣减库存。
 9. 从成品选择器记餐，并查看今天营养。
+10. 照片小票上传、人工确认后写入库存，并匹配已有食材。
 
-第一版不包含小票导入、OCR、PDF、营养标签识别、库存导入历史、低量阈值、临期规则、替代食材、不同单位换算、库存手工调整、撤销已做成品、趋势、周报和身体数据。
+第一版不包含 PDF、营养标签识别、自动创建食材、单品选择器扩展、低量阈值、临期规则、替代食材、不同单位换算、库存手工调整、撤销已做成品、趋势、周报和身体数据。照片识别依赖服务器端 OCR 配置。没有配置时会返回明确失败状态。
 
 ## 3. 连接方式
 
@@ -65,7 +66,11 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 | `weekly_plan_items` | 每周计划中的食谱、日期、份数和顺序 |
 | `shopping_lists` | 由周计划生成的采购清单主记录 |
 | `shopping_list_items` | 合并后的食材需求、库存覆盖量和采购完成状态 |
-| `operation_requests` | `complete_purchase` 与 `save_cook_session` 的幂等结果 |
+| `operation_requests` | `complete_purchase`、`save_cook_session` 与 `confirm_receipt_import` 的幂等结果 |
+| `receipt_imports` | 私有照片上传、识别状态、原始文本与确认时间 |
+| `receipt_items` | 小票商品行、匹配建议、人工确认结果与入库库存批次 |
+| `ingredient_aliases` | 当前用户确认过的商品别名到已有食材的映射 |
+| `cook_unmatched_items` | 做饭时使用的未匹配库存。它不携带营养数据。 |
 | `body_metrics` | 身体数据留位，当前为空 |
 
 ### 已支持的 View
@@ -378,6 +383,12 @@ await supabase.rpc('save_cook_session', {
     unit: '盒',
     note: '',
   }],
+  p_unmatched_items: [{
+    inventoryId: unmatchedInventoryId,
+    quantityUsed: 0.5,
+    unit: '盒',
+    note: '',
+  }], // 可选。只用于 ingredient_id 为空的库存，不产生营养数据。
 })
 ```
 
@@ -406,6 +417,74 @@ await supabase.rpc('save_cook_session', {
 | `IDEMPOTENCY_CONFLICT` | 相同幂等键提交了不同内容 | 不自动重试，生成新操作前先让用户确认 |
 | `FORBIDDEN` 或数据库权限错误 | 未授权访问或试图绕过 RPC 直接写表 | 不显示匿名数据，必要时回登录页 |
 | `NETWORK_UNKNOWN` | 浏览器未取得响应，服务端结果可能已提交 | 不创建新幂等键，查询原键结果或原键重试 |
+
+### 8.3 照片小票导入库存接口
+
+状态：**已支持并已在远端验证**。只支持 JPEG、PNG、WebP，单张最大 10 MB。图片保存于私有 `receipt-source` bucket，前端不能使用公开 URL 或任何 secret key。
+
+流程固定为“创建导入任务 → 上传到返回路径 → 调用识别函数 → 修改草稿 → 确认入库”。小票商品不会直接加入记餐单品选择器。
+
+```ts
+const { data: created, error: createError } = await supabase.rpc('create_receipt_import', {
+  p_file_name: file.name,
+  p_content_type: file.type,
+  p_file_size_bytes: file.size,
+  p_file_hash: sha256Hex, // 可选。相同文件会返回已有任务。
+})
+
+await supabase.storage.from('receipt-source').upload(created.storagePath, file, {
+  contentType: file.type,
+  upsert: false,
+})
+
+await supabase.functions.invoke('process-receipt', {
+  body: { receiptImportId: created.receiptImportId },
+})
+```
+
+`process-receipt` 只接受已登录用户。它会验证导入归属后读取私有图片，再调用服务器端 OCR 服务。当前远端没有配置 `RECEIPT_OCR_URL` 和 `RECEIPT_OCR_API_KEY`，所以调用会返回 `OCR_NOT_CONFIGURED`。这不是前端可重试后自动恢复的问题。配置完成前，前端应保留上传记录并提示稍后重试，不显示伪造的识别商品行。
+
+草稿读取和确认：
+
+```ts
+const { data: draft } = await supabase.rpc('get_receipt_import', {
+  p_receipt_import_id: receiptImportId,
+})
+
+await supabase.rpc('update_receipt_items', {
+  p_receipt_import_id: receiptImportId,
+  p_items: draft.items.map((item) => ({
+    receiptItemId: item.receiptItemId,
+    ingredientId: item.ingredientId ?? null,
+    action: 'add_to_inventory', // 或 'ignore'
+    confirmedName: item.confirmedName ?? item.rawName,
+    confirmedQuantity: item.confirmedQuantity,
+    confirmedUnit: item.confirmedUnit,
+    storage: '冷藏',
+  })),
+})
+
+await supabase.rpc('confirm_receipt_import', {
+  p_receipt_import_id: receiptImportId,
+  p_idempotency_key: crypto.randomUUID(),
+})
+```
+
+`update_receipt_items` 必须一次提交该导入的全部商品行。`add_to_inventory` 行必须有确认名称、正数数量和量词。选择已有食材时，`ingredientId` 必须属于当前用户。`ingredientId: null` 表示未匹配库存占位。确认成功后，后端在一个事务中创建库存和 `purchase` 流水，并回写每行的 `inventoryId`。
+
+匹配优先级是用户已确认别名、已有食材同名、低置信度推荐。推荐项仍需用户确认。未匹配库存可以被 `search_cook_inventory` 返回，并可通过 `save_cook_session.p_unmatched_items` 按相同量词扣减，但不会写入 `cook_items`，因此不能成为可靠营养来源或单品选择器结果。
+
+| 错误码 | 前端行为 |
+|---|---|
+| `RECEIPT_FILE_INVALID` | 阻止上传，提示只使用支持格式和 10 MB 以下图片。 |
+| `OCR_NOT_CONFIGURED` | 保留上传记录，提示识别服务尚未配置。不要显示商品草稿。 |
+| `OCR_UNAVAILABLE`、`OCR_RESPONSE_INVALID`、`RECEIPT_FILE_UNAVAILABLE` | 保留上传记录并允许使用同一任务重试。 |
+| `RECEIPT_RECOGNITION_INVALID` | 提示识别结果无效，保留原图和失败状态。 |
+| `STATUS_CONFLICT` | 重新读取导入任务。已确认任务不能再次入库。 |
+| `IDEMPOTENCY_CONFLICT` | 同一确认键已用于不同内容。不要自动新建键。 |
+| `INVALID_REFERENCE`、`AUTH_REQUIRED` | 不透露其他用户导入是否存在。回登录或重新读取当前列表。 |
+
+同一文件哈希会返回已有导入任务。`confirm_receipt_import` 使用幂等键：同键同内容返回第一次成功结果，同键不同内容返回 `IDEMPOTENCY_CONFLICT`。确认后的导入使用新键会返回 `STATUS_CONFLICT`，不会再次写库存。
 
 ## 9. 新需求处理规则
 

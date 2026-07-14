@@ -25,7 +25,7 @@ export function CookInventoryPickerPage({ ingredientId, ingredientName, selected
     setError(null)
     try {
       const result = await fr002Adapter.searchCookInventory(query)
-      setItems(result.filter((item) => item.ingredientId === ingredientId))
+      setItems(result.filter((item) => item.ingredientId === ingredientId || item.ingredientId === null))
     } catch (reason) {
       if (isAuthenticationRequired(reason)) onSessionExpired()
       else setError(reason instanceof Error ? reason.message : '库存选择器加载失败。')
@@ -51,7 +51,7 @@ export function CookInventoryPickerPage({ ingredientId, ingredientName, selected
             <div className="section-heading"><span>库存可选</span><small>{items.length} 批</small></div>
             {items.map((item) => {
               const selected = selectedIds.includes(item.inventoryId)
-              return <button className="feature-row" key={item.inventoryId} disabled={selected} onClick={() => onSelect(item)}><span><b>{item.name}</b><small>{amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.hasTrustedGrams ? '有可信营养克重' : '只按相同量词扣减'}</small></span><strong>{selected ? '已选择' : '选择'}</strong></button>
+              return <button className="feature-row" key={item.inventoryId} disabled={selected} onClick={() => onSelect(item)}><span><b>{item.name}</b><small>{amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.ingredientId === null ? '库存占位，可扣减但不计入营养' : item.hasTrustedGrams ? '有可信营养克重' : '只按相同量词扣减'}</small></span><strong>{selected ? '已选择' : '选择'}</strong></button>
             })}
           </section>
         )}

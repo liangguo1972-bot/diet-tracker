@@ -98,6 +98,47 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .date-note { color: var(--muted); font-size: 12px; }
 .kitchen-page, .grocery-page { background: var(--mint); }
 .cook-page, .grocery-detail-page { background: var(--blue); }
+.receipt-page { background: var(--blue); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+.kitchen-hero { display: flex; align-items: flex-end; justify-content: space-between; padding-top: 8px; }
+.kitchen-hero > div { display: flex; flex-direction: column; gap: 7px; }
+.kitchen-hero h1 { margin: 0; font-size: 38px; line-height: 1; letter-spacing: -.04em; }
+.kitchen-hero .date-note { border: 0; padding: 6px 0; background: transparent; cursor: pointer; }
+.week-scope { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: rgba(255,253,246,.72); font-size: 12px; }
+.week-scope span { padding: 4px 9px; border-radius: 99px; color: white; background: var(--ink); }
+.week-scope small { color: var(--muted); text-align: right; }
+.add-inventory-card { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; border-radius: 18px; color: white; background: var(--ink); }
+.add-inventory-card > div { grid-column: 1 / -1; }
+.add-inventory-card h2 { max-width: 275px; margin: 8px 0 16px; font-size: 24px; line-height: 1.15; }
+.add-inventory-card button { min-height: 38px; border: 0; border-radius: 99px; padding: 8px 10px; color: var(--ink); background: var(--paper); font-size: 11px; cursor: pointer; }
+.add-inventory-card button:disabled { cursor: not-allowed; opacity: .45; }
+.receipt-entry-card { display: flex; flex-direction: column; gap: 12px; }
+.receipt-entry-card h2 { margin: 7px 0 4px; font-size: 22px; }
+.receipt-entry-card p, .receipt-intro p, .receipt-summary p, .import-card p, .current-upload p, .match-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.receipt-intro, .receipt-summary { padding: 8px 4px 0; }
+.receipt-intro h2, .receipt-summary h2 { margin: 8px 0; font-size: 32px; line-height: 1.05; overflow-wrap: anywhere; }
+.import-card { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 12px; align-items: center; }
+.import-card h3, .current-upload h3 { margin: 0 0 4px; overflow-wrap: anywhere; }
+.import-card .primary-button, .import-card .secondary-button { grid-column: 1 / -1; }
+.import-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; color: white; background: var(--ink); font-family: 'Space Grotesk'; font-size: 12px; }
+.disabled-card { opacity: .62; }
+.current-upload { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.current-upload > div { min-width: 0; }
+.current-upload .status-chip { margin-bottom: 8px; }
+.success-banner button { margin-left: 8px; }
+.receipt-item-stack { display: flex; flex-direction: column; gap: 12px; }
+.receipt-item { display: flex; flex-direction: column; gap: 13px; }
+.receipt-item.ignored { opacity: .72; }
+.receipt-item-title { display: flex; min-width: 0; align-items: center; gap: 9px; }
+.receipt-item-title b { overflow-wrap: anywhere; }
+.receipt-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.receipt-fields label { display: flex; min-width: 0; flex-direction: column; gap: 5px; color: var(--muted); font-size: 11px; }
+.receipt-fields label:first-child, .receipt-fields label:last-child { grid-column: 1 / -1; }
+.receipt-fields input { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 9px; padding: 10px; color: var(--ink); background: white; }
+.match-note { padding: 9px 11px; border-radius: 9px; background: #edf8f1; }
+.match-note.warning { color: #8a492c; background: #fff4e8; }
+.receipt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.receipt-actions .secondary-button { max-width: 100%; min-height: 34px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feature-section { display: flex; flex-direction: column; gap: 12px; }
 .text-button.neutral { color: var(--muted); }
 .summary-grid { display: grid; width: 100%; grid-template-columns: repeat(3, 1fr); gap: 8px; border: 0; padding: 0; background: transparent; cursor: pointer; }
@@ -181,4 +222,4 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .purchase-fields label:nth-child(n+3) { grid-column: 1 / -1; }
 .completed-copy { margin: 0; color: var(--muted); font-size: 12px; }
 @media (min-width: 700px) { body { padding: 24px; } .phone { min-height: min(844px, calc(100vh - 48px)); border-radius: 32px; box-shadow: 0 24px 70px rgba(21,24,29,.14); } .bottom-nav, .sticky-actions { position: absolute; } }
-@media (max-width: 340px) { .page-content { padding-inline: 12px; } .filter-row, .metric-grid { gap: 10px; } .metric-card { padding: 12px; } .bottom-nav, .sticky-actions { width: calc(100% - 24px); } .draft-row { align-items: flex-start; } .summary-grid span { padding: 9px; } .summary-grid b { font-size: 24px; } .edit-plan-row { grid-template-columns: 1fr 88px; } .edit-plan-row label:last-of-type { grid-column: 1 / -1; } .candidate-card { align-items: flex-start; } }
+@media (max-width: 340px) { .page-content { padding-inline: 12px; } .filter-row, .metric-grid { gap: 10px; } .metric-card { padding: 12px; } .bottom-nav, .sticky-actions { width: calc(100% - 24px); } .draft-row { align-items: flex-start; } .summary-grid span { padding: 9px; } .summary-grid b { font-size: 24px; } .edit-plan-row { grid-template-columns: 1fr 88px; } .edit-plan-row label:last-of-type { grid-column: 1 / -1; } .candidate-card { align-items: flex-start; } .week-scope { grid-template-columns: auto 1fr; } .week-scope small { grid-column: 1 / -1; text-align: left; } .add-inventory-card { grid-template-columns: 1fr; } .add-inventory-card > div { grid-column: 1; } .receipt-fields { grid-template-columns: 1fr; } .receipt-fields label { grid-column: 1 !important; } }

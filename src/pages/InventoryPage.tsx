@@ -12,7 +12,10 @@ const filters: Array<{ value: InventoryStatus | undefined; label: string }> = [
   { value: 'depleted', label: '已用尽' },
 ]
 
-export function InventoryPage({ onBack, onTab, onSessionExpired }: {
+export function InventoryPage({ refreshKey, notice, onReceiptImport, onBack, onTab, onSessionExpired }: {
+  refreshKey: number
+  notice: string | null
+  onReceiptImport: () => void
   onBack: () => void
   onTab: (tab: MainTab) => void
   onSessionExpired: () => void
@@ -37,12 +40,18 @@ export function InventoryPage({ onBack, onTab, onSessionExpired }: {
   useEffect(() => {
     const timer = window.setTimeout(() => { void load() }, 180)
     return () => window.clearTimeout(timer)
-  }, [load])
+  }, [load, refreshKey])
 
   return (
     <main className="phone page kitchen-page">
       <div className="page-content">
         <header className="topbar centered"><button className="back-button" onClick={onBack}>返回</button><h1>冰箱库存</h1><span /></header>
+        {notice && <div className="success-banner" role="status">{notice}</div>}
+        <section className="section-card receipt-entry-card">
+          <div><span className="eyebrow-label">更新库存</span><h2>从小票添加库存</h2><p>拍照识别商品，确认后再写入库存。</p></div>
+          <button className="primary-button" onClick={onReceiptImport}>拍照扫描小票</button>
+          <button className="secondary-button wide" disabled>导入 PDF · 尚未开放</button>
+        </section>
         <input className="search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索库存名称" />
         <div className="filter-chips" aria-label="库存状态筛选">
           {filters.map((filter) => <button key={filter.label} className={status === filter.value ? 'active' : ''} onClick={() => setStatus(filter.value)}>{filter.label}</button>)}
@@ -61,7 +70,7 @@ export function InventoryPage({ onBack, onTab, onSessionExpired }: {
             ))}
           </section>
         )}
-        <p className="scope-note">小票、图片和 PDF 导入属于 FR-001，本版本不提供入口。</p>
+        <p className="scope-note">未匹配商品会显示为库存占位。它可以用于做饭扣减，但不会进入记餐单品选择器。</p>
       </div>
       <BottomNav active="厨房" onChange={onTab} />
     </main>

@@ -29,6 +29,17 @@ describe('FR-002 drafts', () => {
     expect(input.items[1]).toMatchObject({ quantityUsed: 0.5, unit: '盒' })
   })
 
+  it('sends unmatched receipt stock separately without adding nutrition identity', () => {
+    let draft = createCookDraft(preparation, '2026-07-13')
+    draft = setCookInventory({ ...draft, ingredients: draft.ingredients.map((item) => item.ingredientId === 'ingredient-box' ? { ...item, usages: [] } : item) }, 'ingredient-box', {
+      inventoryId: 'unmatched-lot', ingredientId: null, name: 'KIMCHI 12OZ', quantity: 1, unit: '盒', unitKind: 'container', gramsPerUnit: null, storage: '冷藏', expiresOn: null, hasTrustedGrams: false,
+    })
+    draft.ingredients[1].usages[0].quantityUsed = 0.5
+    const input = toSaveCookInput(draft)
+    expect(input.items).toHaveLength(1)
+    expect(input.unmatchedItems).toEqual([{ inventoryId: 'unmatched-lot', displayName: 'KIMCHI 12OZ', quantityUsed: 0.5, unit: '盒', note: '' }])
+  })
+
   it('places drawn recipes on the Figma four-day rhythm', () => {
     const recipes: DrawnRecipe[] = [0, 1, 2, 3].map((index) => ({ recipeId: `r-${index}`, name: `食谱${index}`, servings: 2, status: 'candidate' }))
     expect(createDrawnPlan(recipes, '2026-07-13').map((item) => item.scheduledOn)).toEqual(['2026-07-13', '2026-07-15', '2026-07-17', '2026-07-19'])
