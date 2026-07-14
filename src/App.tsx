@@ -6,8 +6,9 @@ import type { MainTab } from './components/BottomNav'
 import { LoginPage } from './pages/LoginPage'
 import { MealPage } from './pages/MealPage'
 import { PickerPage } from './pages/PickerPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
 import { TodayPage } from './pages/TodayPage'
+import { KitchenFlow } from './features/KitchenFlow'
+import { PurchaseFlow } from './features/PurchaseFlow'
 import type { MealDraft, SelectableItem, TodayMeal } from './types'
 
 type Route = 'today' | 'meal' | 'cook-picker' | 'ingredient-picker' | 'kitchen' | 'grocery'
@@ -95,7 +96,7 @@ export default function App() {
   if (route === 'meal') return <MealPage draft={draft} onDraft={setDraft} onBack={() => setRoute('today')} onPick={(kind) => setRoute(kind === 'cook_session' ? 'cook-picker' : 'ingredient-picker')} onTab={switchTab} onSaved={saved} onMealMissing={mealMissing} onSessionExpired={sessionExpired} />
   if (route === 'cook-picker') return <PickerPage kind="cook_session" selectedItems={draft.items} onBack={() => setRoute('meal')} onAdd={addItem} onKindChange={(kind) => setRoute(kind === 'cook_session' ? 'cook-picker' : 'ingredient-picker')} onTab={switchTab} onSessionExpired={sessionExpired} />
   if (route === 'ingredient-picker') return <PickerPage kind="ingredient" selectedItems={draft.items} onBack={() => setRoute('meal')} onAdd={addItem} onKindChange={(kind) => setRoute(kind === 'cook_session' ? 'cook-picker' : 'ingredient-picker')} onTab={switchTab} onSessionExpired={sessionExpired} />
-  if (route === 'kitchen') return <PlaceholderPage tab="厨房" onTab={switchTab} />
-  if (route === 'grocery') return <PlaceholderPage tab="采购" onTab={switchTab} />
+  if (route === 'kitchen') return <KitchenFlow onTab={switchTab} onSessionExpired={sessionExpired} />
+  if (route === 'grocery') return <PurchaseFlow onTab={switchTab} onSessionExpired={sessionExpired} />
   return <TodayPage refreshKey={refreshKey} notice={notice} authError={authError} onNewMeal={startNewMeal} onEditMeal={editMeal} onTab={switchTab} onSignOut={signOut} onSessionExpired={sessionExpired} />
 }

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       body_metrics: {
@@ -188,42 +213,60 @@ export type Database = {
       }
       inventory: {
         Row: {
+          created_at: string
+          display_name: string | null
+          expires_on: string | null
+          grams_per_unit: number | null
           id: string
           ingredient_id: string | null
           note: string | null
           price: number | null
           purchase_date: string | null
-          quantity: number | null
+          quantity: number
           receipt_raw_name: string | null
-          status: string | null
+          status: string
           storage: string | null
-          unit: string | null
+          unit: string
+          unit_kind: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
+          display_name?: string | null
+          expires_on?: string | null
+          grams_per_unit?: number | null
           id?: string
           ingredient_id?: string | null
           note?: string | null
           price?: number | null
           purchase_date?: string | null
-          quantity?: number | null
+          quantity: number
           receipt_raw_name?: string | null
-          status?: string | null
+          status: string
           storage?: string | null
-          unit?: string | null
+          unit: string
+          unit_kind?: string | null
+          updated_at?: string
           user_id?: string
         }
         Update: {
+          created_at?: string
+          display_name?: string | null
+          expires_on?: string | null
+          grams_per_unit?: number | null
           id?: string
           ingredient_id?: string | null
           note?: string | null
           price?: number | null
           purchase_date?: string | null
-          quantity?: number | null
+          quantity?: number
           receipt_raw_name?: string | null
-          status?: string | null
+          status?: string
           storage?: string | null
-          unit?: string | null
+          unit?: string
+          unit_kind?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -232,6 +275,77 @@ export type Database = {
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          cook_session_id: string | null
+          created_at: string
+          id: string
+          inventory_id: string
+          movement_type: string
+          note: string | null
+          occurred_at: string
+          quantity_delta: number
+          shopping_list_id: string | null
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          cook_session_id?: string | null
+          created_at?: string
+          id?: string
+          inventory_id: string
+          movement_type: string
+          note?: string | null
+          occurred_at?: string
+          quantity_delta: number
+          shopping_list_id?: string | null
+          unit: string
+          user_id: string
+        }
+        Update: {
+          cook_session_id?: string | null
+          created_at?: string
+          id?: string
+          inventory_id?: string
+          movement_type?: string
+          note?: string | null
+          occurred_at?: string
+          quantity_delta?: number
+          shopping_list_id?: string | null
+          unit?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_cook_session_id_fkey"
+            columns: ["cook_session_id"]
+            isOneToOne: false
+            referencedRelation: "cook_nutrition"
+            referencedColumns: ["cook_session_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_cook_session_id_fkey"
+            columns: ["cook_session_id"]
+            isOneToOne: false
+            referencedRelation: "cook_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_shopping_list_fkey"
+            columns: ["shopping_list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
             referencedColumns: ["id"]
           },
         ]
@@ -326,6 +440,87 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_requests: {
+        Row: {
+          created_at: string
+          id: string
+          idempotency_key: string
+          operation_type: string
+          request_hash: string
+          response: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          operation_type: string
+          request_hash: string
+          response?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          operation_type?: string
+          request_hash?: string
+          response?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recipe_candidates: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          recipe_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          recipe_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          recipe_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_candidates_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_nutrition"
+            referencedColumns: ["recipe_id"]
+          },
+          {
+            foreignKeyName: "recipe_candidates_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_items: {
         Row: {
           grams: number
@@ -399,6 +594,110 @@ export type Database = {
         }
         Relationships: []
       }
+      shopping_list_items: {
+        Row: {
+          completed_quantity: number | null
+          completed_unit: string | null
+          created_at: string
+          id: string
+          ingredient_id: string
+          inventory_covered_grams: number
+          item_status: string
+          purchase_quantity: number | null
+          purchase_unit: string | null
+          required_grams: number
+          shopping_list_id: string
+          storage: string | null
+          to_purchase_grams: number
+          updated_at: string
+        }
+        Insert: {
+          completed_quantity?: number | null
+          completed_unit?: string | null
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          inventory_covered_grams?: number
+          item_status?: string
+          purchase_quantity?: number | null
+          purchase_unit?: string | null
+          required_grams: number
+          shopping_list_id: string
+          storage?: string | null
+          to_purchase_grams?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_quantity?: number | null
+          completed_unit?: string | null
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          inventory_covered_grams?: number
+          item_status?: string
+          purchase_quantity?: number | null
+          purchase_unit?: string | null
+          required_grams?: number
+          shopping_list_id?: string
+          storage?: string | null
+          to_purchase_grams?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_list_items_shopping_list_id_fkey"
+            columns: ["shopping_list_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_lists: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          weekly_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_lists_weekly_plan_id_fkey"
+            columns: ["weekly_plan_id"]
+            isOneToOne: true
+            referencedRelation: "weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       targets: {
         Row: {
           daily_kcal: number | null
@@ -420,6 +719,88 @@ export type Database = {
           id?: string
           note?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_plan_items: {
+        Row: {
+          created_at: string
+          id: string
+          planned_servings: number
+          position: number
+          recipe_id: string
+          scheduled_on: string
+          source: string
+          weekly_plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          planned_servings?: number
+          position?: number
+          recipe_id: string
+          scheduled_on: string
+          source?: string
+          weekly_plan_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          planned_servings?: number
+          position?: number
+          recipe_id?: string
+          scheduled_on?: string
+          source?: string
+          weekly_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_plan_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_nutrition"
+            referencedColumns: ["recipe_id"]
+          },
+          {
+            foreignKeyName: "weekly_plan_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_plan_items_weekly_plan_id_fkey"
+            columns: ["weekly_plan_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_plans: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
         }
         Relationships: []
       }
@@ -484,7 +865,48 @@ export type Database = {
       }
     }
     Functions: {
+      complete_purchase: {
+        Args: {
+          p_idempotency_key: string
+          p_items: Json
+          p_shopping_list_id: string
+        }
+        Returns: Json
+      }
+      draw_recipe_candidates: { Args: { p_count?: number }; Returns: Json }
+      generate_shopping_list: {
+        Args: { p_weekly_plan_id: string }
+        Returns: Json
+      }
+      get_cook_preparation: {
+        Args: { p_plan_item_id?: string; p_recipe_id: string }
+        Returns: Json
+      }
+      get_kitchen_home: { Args: { p_date?: string }; Returns: Json }
+      get_operation_result: {
+        Args: { p_idempotency_key: string; p_operation_type: string }
+        Returns: Json
+      }
+      get_shopping_list: { Args: { p_weekly_plan_id: string }; Returns: Json }
       get_today: { Args: { p_date: string }; Returns: Json }
+      get_weekly_plan: { Args: { p_week_start: string }; Returns: Json }
+      list_inventory: {
+        Args: { p_query?: string; p_status?: string }
+        Returns: Json
+      }
+      list_recipe_candidates: { Args: never; Returns: Json }
+      save_cook_session: {
+        Args: {
+          p_cooked_on: string
+          p_idempotency_key: string
+          p_items: Json
+          p_name: string
+          p_note: string
+          p_recipe_id: string
+          p_total_servings: number
+        }
+        Returns: Json
+      }
       save_meal: {
         Args: {
           p_eaten_on: string
@@ -493,6 +915,25 @@ export type Database = {
           p_note: string
         }
         Returns: string
+      }
+      save_weekly_plan: {
+        Args: { p_items: Json; p_status?: string; p_week_start: string }
+        Returns: Json
+      }
+      search_cook_inventory: {
+        Args: { p_query?: string }
+        Returns: {
+          expires_on: string
+          grams_per_unit: number
+          has_trusted_grams: boolean
+          ingredient_id: string
+          inventory_id: string
+          name: string
+          quantity: number
+          storage: string
+          unit: string
+          unit_kind: string
+        }[]
       }
       search_meal_components: {
         Args: { p_query: string; p_source_type: string }
@@ -510,6 +951,10 @@ export type Database = {
           source_type: string
           subtitle: string
         }[]
+      }
+      set_recipe_candidate_status: {
+        Args: { p_position?: number; p_recipe_id: string; p_status: string }
+        Returns: Json
       }
       update_meal: {
         Args: {
@@ -649,6 +1094,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

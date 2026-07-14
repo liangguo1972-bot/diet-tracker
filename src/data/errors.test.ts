@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AuthenticationRequiredError, MealComponentNotFoundError, MealNotFoundError, toDataError } from './errors'
+import { AuthenticationRequiredError, Fr002Error, MealComponentNotFoundError, MealNotFoundError, toDataError, toOperationError } from './errors'
 
 describe('RPC error semantics', () => {
   it('treats PostgREST function permission errors as expired auth', () => {
@@ -13,5 +13,16 @@ describe('RPC error semantics', () => {
 
   it('closes editing when the meal no longer exists', () => {
     expect(toDataError({ message: 'Meal not found' })).toBeInstanceOf(MealNotFoundError)
+  })
+
+  it('maps stable FR-002 business codes', () => {
+    expect(toDataError({ message: 'UNIT_CONFLICT' })).toMatchObject({ code: 'UNIT_CONFLICT' })
+    expect(toDataError({ message: 'INSUFFICIENT_STOCK' })).toMatchObject({ code: 'INSUFFICIENT_STOCK' })
+  })
+
+  it('maps an unknown mutation network result without losing the operation semantics', () => {
+    const error = toOperationError(new Error('Failed to fetch'))
+    expect(error).toBeInstanceOf(Fr002Error)
+    expect(error).toMatchObject({ code: 'NETWORK_UNKNOWN' })
   })
 })
