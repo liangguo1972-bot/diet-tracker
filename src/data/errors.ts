@@ -1,4 +1,4 @@
-type SupabaseLikeError = { code?: string; message: string }
+type SupabaseLikeError = { code?: string; message: string; details?: string }
 
 export type Fr002ErrorCode =
   | 'INVALID_REFERENCE'
@@ -15,6 +15,12 @@ export type Fr002ErrorCode =
   | 'RECEIPT_FILE_UNAVAILABLE'
   | 'RECEIPT_RECOGNITION_INVALID'
   | 'STATUS_CONFLICT'
+  | 'RECEIPT_ITEMS_INVALID'
+  | 'RECEIPT_ITEMS_INCOMPLETE'
+  | 'RECEIPT_ITEM_NAME_REQUIRED'
+  | 'RECEIPT_ITEM_QUANTITY_INVALID'
+  | 'RECEIPT_ITEM_UNIT_INVALID'
+  | 'RECEIPT_ITEM_STORAGE_INVALID'
 
 const fr002Messages: Record<Fr002ErrorCode, string> = {
   INVALID_REFERENCE: '所选数据已经失效，请重新加载后选择。',
@@ -31,10 +37,16 @@ const fr002Messages: Record<Fr002ErrorCode, string> = {
   RECEIPT_FILE_UNAVAILABLE: '无法读取已上传的照片，请重新选择原照片。',
   RECEIPT_RECOGNITION_INVALID: '小票识别请求无效，请重新选择照片。',
   STATUS_CONFLICT: '小票任务状态已经变化，请重新加载。',
+  RECEIPT_ITEMS_INVALID: '小票内容无效，请重新加载后重试。',
+  RECEIPT_ITEMS_INCOMPLETE: '小票内容不完整，请重新加载后重试。',
+  RECEIPT_ITEM_NAME_REQUIRED: '请补充商品名称。',
+  RECEIPT_ITEM_QUANTITY_INVALID: '商品数量必须大于 0。',
+  RECEIPT_ITEM_UNIT_INVALID: '商品量词无效，请重新加载。',
+  RECEIPT_ITEM_STORAGE_INVALID: '请选择常温、冷藏或冷冻。',
 }
 
 export class Fr002Error extends Error {
-  constructor(public readonly code: Fr002ErrorCode) {
+  constructor(public readonly code: Fr002ErrorCode, public readonly details: { receiptItemId?: string; field?: string } | null = null) {
     super(fr002Messages[code])
     this.name = 'Fr002Error'
   }
@@ -65,9 +77,13 @@ export function toDataError(error: SupabaseLikeError): Error {
   if (error.code === '28000' || /AUTH_REQUIRED|FORBIDDEN|authentication required|jwt|not authenticated|permission denied for function/i.test(error.message)) {
     return new AuthenticationRequiredError()
   }
-  const code = (['INVALID_REFERENCE', 'QUANTITY_INVALID', 'UNIT_CONFLICT', 'INSUFFICIENT_STOCK', 'CONFLICT', 'IDEMPOTENCY_CONFLICT', 'RECEIPT_FILE_INVALID', 'OCR_NOT_CONFIGURED', 'OCR_UNAVAILABLE', 'OCR_RESPONSE_INVALID', 'RECEIPT_FILE_UNAVAILABLE', 'RECEIPT_RECOGNITION_INVALID', 'STATUS_CONFLICT'] as const)
+  const code = (['INVALID_REFERENCE', 'QUANTITY_INVALID', 'UNIT_CONFLICT', 'INSUFFICIENT_STOCK', 'CONFLICT', 'IDEMPOTENCY_CONFLICT', 'RECEIPT_FILE_INVALID', 'OCR_NOT_CONFIGURED', 'OCR_UNAVAILABLE', 'OCR_RESPONSE_INVALID', 'RECEIPT_FILE_UNAVAILABLE', 'RECEIPT_RECOGNITION_INVALID', 'STATUS_CONFLICT', 'RECEIPT_ITEMS_INVALID', 'RECEIPT_ITEMS_INCOMPLETE', 'RECEIPT_ITEM_NAME_REQUIRED', 'RECEIPT_ITEM_QUANTITY_INVALID', 'RECEIPT_ITEM_UNIT_INVALID', 'RECEIPT_ITEM_STORAGE_INVALID'] as const)
     .find((candidate) => error.message.includes(candidate))
-  if (code) return new Fr002Error(code)
+  if (code) {
+    let details: { receiptItemId?: string; field?: string } | null = null
+    try { details = error.details ? JSON.parse(error.details) as { receiptItemId?: string; field?: string } : null } catch { details = null }
+    return new Fr002Error(code, details)
+  }
   if (/selectable ingredient not found|cook session not found/i.test(error.message)) return new MealComponentNotFoundError()
   if (/meal not found/i.test(error.message)) return new MealNotFoundError()
   return new Error(error.message)

@@ -1,6 +1,6 @@
 import type { Json } from '../lib/database.types'
 import { supabase, supabaseConfigError } from '../lib/supabase'
-import type { ConfirmReceiptResult, ReceiptAction, ReceiptImport, ReceiptImportCreated, ReceiptImportStatus, ReceiptImportSummary, ReceiptItem, ReceiptItemInput, ReceiptMatchStatus } from '../receipt-types'
+import type { ConfirmReceiptResult, ReceiptAction, ReceiptImport, ReceiptImportCreated, ReceiptImportStatus, ReceiptImportSummary, ReceiptIngredientOption, ReceiptItem, ReceiptItemInput, ReceiptMatchStatus } from '../receipt-types'
 import { toDataError, toOperationError } from './errors'
 
 type JsonRecord = Record<string, Json | undefined>
@@ -99,6 +99,20 @@ export function parseConfirmReceipt(value: Json): ConfirmReceiptResult {
   }
 }
 
+export function parseReceiptIngredients(value: Json): ReceiptIngredientOption[] {
+  return list(value).map((entry) => {
+    const item = record(entry, '食材搜索结果')
+    return {
+      ingredientId: text(item.ingredient_id),
+      name: text(item.name),
+      category: optionalText(item.category),
+      packageSpec: optionalText(item.package_spec),
+      storageGuidance: optionalText(item.storage_guidance),
+      isVerified: item.is_verified === true,
+    }
+  })
+}
+
 function client() {
   if (!supabase) throw new Error(supabaseConfigError ?? 'Supabase 未配置')
   return supabase
@@ -173,6 +187,11 @@ export const receiptAdapter = {
     const { data, error } = await client().rpc('list_receipt_imports', { p_limit: limit })
     if (error) throw toDataError(error)
     return parseReceiptImports(data)
+  },
+  async searchIngredients(query: string): Promise<ReceiptIngredientOption[]> {
+    const { data, error } = await client().rpc('search_receipt_ingredients', { p_query: query })
+    if (error) throw toDataError(error)
+    return parseReceiptIngredients(data)
   },
   async process(receiptImportId: string, selectedFile?: File): Promise<ReceiptImport> {
     const current = await this.get(receiptImportId)

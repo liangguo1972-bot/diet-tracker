@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseConfirmReceipt, parseReceiptCreated, parseReceiptImport, parseReceiptImports } from './receipts'
+import { parseConfirmReceipt, parseReceiptCreated, parseReceiptImport, parseReceiptImports, parseReceiptIngredients } from './receipts'
 
 describe('FR-001 response parsing', () => {
   it('keeps real matched, possible, unmatched and ignored states', () => {
@@ -32,5 +32,9 @@ describe('FR-001 response parsing', () => {
   it('parses real recent imports without sample fallbacks', () => {
     const result = parseReceiptImports([{ receiptImportId: 'r', status: 'failed', fileName: 'receipt.jpg', merchantName: null, purchasedOn: null, errorCode: 'OCR_NOT_CONFIGURED', createdAt: '2026-07-14T12:00:00Z', confirmedAt: null }])
     expect(result).toEqual([expect.objectContaining({ receiptImportId: 'r', status: 'failed', errorCode: 'OCR_NOT_CONFIGURED' })])
+  })
+
+  it('parses receipt ingredient search results without changing names', () => {
+    expect(parseReceiptIngredients([{ ingredient_id: 'i-1', name: '香蕉', category: '水果', package_spec: null, storage_guidance: '冷藏约一周', is_verified: true }])).toEqual([{ ingredientId: 'i-1', name: '香蕉', category: '水果', packageSpec: null, storageGuidance: '冷藏约一周', isVerified: true }])
   })
 })

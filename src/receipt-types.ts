@@ -52,6 +52,15 @@ export type ReceiptImportSummary = {
 
 export type ReceiptItemInput = Pick<ReceiptItem, 'receiptItemId' | 'ingredientId' | 'confirmedName' | 'confirmedQuantity' | 'confirmedUnit' | 'storage' | 'action'>
 
+export type ReceiptIngredientOption = {
+  ingredientId: string
+  name: string
+  category: string | null
+  packageSpec: string | null
+  storageGuidance: string | null
+  isVerified: boolean
+}
+
 export type ConfirmReceiptResult = {
   receiptImportId: string
   status: 'confirmed'

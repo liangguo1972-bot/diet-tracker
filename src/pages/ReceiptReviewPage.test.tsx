@@ -8,12 +8,12 @@ import { ReceiptReviewPage } from './ReceiptReviewPage'
 
 vi.mock('../data/receipts', async (importOriginal) => {
   const original = await importOriginal<typeof import('../data/receipts')>()
-  return { ...original, receiptAdapter: { ...original.receiptAdapter, get: vi.fn(), update: vi.fn(), confirm: vi.fn() } }
+  return { ...original, receiptAdapter: { ...original.receiptAdapter, get: vi.fn(), update: vi.fn(), confirm: vi.fn(), searchIngredients: vi.fn() } }
 })
 
 const receipt: ReceiptImport = {
   receiptImportId: 'receipt-1', status: 'ready_for_review', fileName: 'receipt.jpg', contentType: 'image/jpeg', storagePath: 'p', merchantName: null, purchasedOn: null, errorCode: null,
-  items: [{ receiptItemId: 'item-1', position: 0, rawName: 'A VERY LONG UNMATCHED PRODUCT NAME', rawQuantity: 1, rawUnit: '袋', rawPrice: 5.99, ingredientId: null, ingredientName: null, matchStatus: 'unmatched', matchConfidence: null, confirmedName: 'A VERY LONG UNMATCHED PRODUCT NAME', confirmedQuantity: 1, confirmedUnit: '袋', storage: '', action: 'add_to_inventory' }],
+  items: [{ receiptItemId: 'item-1', position: 0, rawName: 'A VERY LONG UNMATCHED PRODUCT NAME', rawQuantity: 1, rawUnit: '袋', rawPrice: 5.99, ingredientId: null, ingredientName: null, matchStatus: 'unmatched', matchConfidence: null, confirmedName: 'A VERY LONG UNMATCHED PRODUCT NAME', confirmedQuantity: 1, confirmedUnit: '袋', storage: '常温', action: 'add_to_inventory' }],
 }
 
 describe('ReceiptReviewPage', () => {
@@ -47,11 +47,20 @@ describe('ReceiptReviewPage', () => {
     expect(screen.getByRole('button', { name: '恢复此项' })).toBeTruthy()
   })
 
-  it('does not use a price-like OCR value as inventory quantity', async () => {
-    vi.mocked(receiptAdapter.get).mockResolvedValue({ ...receipt, items: [{ ...receipt.items[0], rawQuantity: 5.99, rawUnit: null, rawPrice: 5.99, confirmedQuantity: 5.99, confirmedUnit: '' }] })
+  it('allows confirmation without a unit and uses the backend safe default label', async () => {
+    vi.mocked(receiptAdapter.get).mockResolvedValue({ ...receipt, items: [{ ...receipt.items[0], rawQuantity: 5.99, rawUnit: null, rawPrice: 5.99, confirmedQuantity: 1, confirmedUnit: '' }] })
     render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
-    expect(await screen.findByText('识别值可能是价格，请确认实际数量。')).toBeTruthy()
-    expect((screen.getByLabelText('数量') as HTMLInputElement).value).toBe('')
-    expect((screen.getByRole('button', { name: /确认入库/ }) as HTMLButtonElement).disabled).toBe(true)
+    expect(await screen.findByText('件')).toBeTruthy()
+    expect((screen.getByRole('button', { name: /确认入库/ }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('searches real ingredients and stores the selected ingredient id', async () => {
+    vi.mocked(receiptAdapter.searchIngredients).mockResolvedValue([{ ingredientId: 'ingredient-1', name: '香蕉', category: '水果', packageSpec: null, storageGuidance: null, isVerified: true }])
+    render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
+    await screen.findByDisplayValue('A VERY LONG UNMATCHED PRODUCT NAME')
+    fireEvent.click(screen.getByRole('button', { name: '搜索' }))
+    expect(await screen.findByText('香蕉')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /香蕉/ }))
+    expect(screen.getByText('香蕉')).toBeTruthy()
   })
 })
