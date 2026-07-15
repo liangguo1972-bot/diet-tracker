@@ -796,6 +796,72 @@ export type Database = {
           },
         ]
       }
+      recipe_parse_calls: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          input_chars: number
+          input_tokens: number | null
+          model: string
+          output_tokens: number | null
+          provider: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          input_chars: number
+          input_tokens?: number | null
+          model: string
+          output_tokens?: number | null
+          provider: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          input_chars?: number
+          input_tokens?: number | null
+          model?: string
+          output_tokens?: number | null
+          provider?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recipe_parse_policy: {
+        Row: {
+          daily_limit: number
+          max_input_chars: number
+          monthly_limit: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          daily_limit: number
+          max_input_chars: number
+          monthly_limit: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          daily_limit?: number
+          max_input_chars?: number
+          monthly_limit?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
           id: string
@@ -1103,6 +1169,10 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_recipe_parse_call: {
+        Args: { p_input_chars: number; p_model: string; p_provider: string }
+        Returns: Json
+      }
       complete_purchase: {
         Args: {
           p_idempotency_key: string
@@ -1110,6 +1180,16 @@ export type Database = {
           p_shopping_list_id: string
         }
         Returns: Json
+      }
+      complete_recipe_parse_call: {
+        Args: {
+          p_error_code?: string
+          p_input_tokens?: number
+          p_output_tokens?: number
+          p_parse_call_id: string
+          p_status: string
+        }
+        Returns: undefined
       }
       confirm_receipt_import: {
         Args: { p_idempotency_key: string; p_receipt_import_id: string }
@@ -1121,6 +1201,15 @@ export type Database = {
           p_file_hash?: string
           p_file_name: string
           p_file_size_bytes: number
+        }
+        Returns: Json
+      }
+      create_recipe_with_candidate: {
+        Args: {
+          p_idempotency_key: string
+          p_items: Json
+          p_name: string
+          p_servings: number
         }
         Returns: Json
       }
@@ -1159,6 +1248,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      match_recipe_ingredients: { Args: { p_items: Json }; Returns: Json }
       normalize_receipt_name: { Args: { p_name: string }; Returns: string }
       save_cook_session: {
         Args: {
@@ -1201,15 +1291,16 @@ export type Database = {
           unit_kind: string
         }[]
       }
-      search_receipt_ingredients: {
-        Args: { p_query?: string }
+      search_ingredients: {
+        Args: { p_limit?: number; p_query?: string }
         Returns: {
-          category: string | null
+          category: string
           ingredient_id: string
           is_verified: boolean
           name: string
-          package_spec: string | null
-          storage_guidance: string | null
+          package_spec: string
+          serving_grams: number
+          storage_guidance: string
         }[]
       }
       search_meal_components: {
@@ -1227,6 +1318,17 @@ export type Database = {
           source_id: string
           source_type: string
           subtitle: string
+        }[]
+      }
+      search_receipt_ingredients: {
+        Args: { p_query?: string }
+        Returns: {
+          category: string
+          ingredient_id: string
+          is_verified: boolean
+          name: string
+          package_spec: string
+          storage_guidance: string
         }[]
       }
       set_recipe_candidate_status: {

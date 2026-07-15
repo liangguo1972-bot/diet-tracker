@@ -66,11 +66,12 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 | `weekly_plan_items` | 每周计划中的食谱、日期、份数和顺序 |
 | `shopping_lists` | 由周计划生成的采购清单主记录 |
 | `shopping_list_items` | 合并后的食材需求、库存覆盖量和采购完成状态 |
-| `operation_requests` | `complete_purchase`、`save_cook_session` 与 `confirm_receipt_import` 的幂等结果 |
+| `operation_requests` | `complete_purchase`、`save_cook_session`、`confirm_receipt_import` 与 `create_recipe` 的幂等结果 |
 | `receipt_imports` | 私有照片上传、识别状态、原始文本与确认时间 |
 | `receipt_items` | 小票商品行、匹配建议、人工确认结果与入库库存批次 |
 | `ingredient_aliases` | 当前用户确认过的商品别名到已有食材的映射 |
 | `cook_unmatched_items` | 做饭时使用的未匹配库存。它不携带营养数据。 |
+| `recipe_parse_calls` | 服务端菜谱解析调用次数、状态和 token 用量。前端不能直接读写。 |
 | `body_metrics` | 身体数据留位，当前为空 |
 
 ### 已支持的 View
@@ -517,6 +518,116 @@ const { data, error } = await supabase.rpc('search_receipt_ingredients', {
 
 商品行字段错误的 `error.message` 是上表稳定错误码。`error.details` 是 JSON 字符串，结构为 `{ "receiptItemId": "...", "field": "storage" }`。前端只在提交失败后解析并显示对应行的内联错误，不需要在页面常驻显示整页校验警告。
 
+### 8.4 FR-003 粘贴解析和创建菜谱
+
+状态：**食材搜索、批量匹配和正式保存已支持并完成远端验证。`parse-recipe` 已部署，但远端尚未配置 `OPENAI_API_KEY`，因此真实 AI 解析暂未开放。**
+
+#### 服务端解析
+
+前端只在用户点击解析时调用：
+
+```ts
+const { data, error } = await supabase.functions.invoke('parse-recipe', {
+  body: { text: pastedRecipeText },
+})
+```
+
+函数要求有效登录 JWT，文本不能为空且最多 20,000 字符。当前实现使用 OpenAI Responses API 和结构化输出。服务端 secret 为必填的 `OPENAI_API_KEY`，以及可选的 `RECIPE_PARSE_MODEL`。未填写模型时使用 `gpt-5-mini`。密钥不能进入 `VITE_` 环境变量、浏览器或仓库。
+
+成功返回：
+
+```ts
+type RecipeParseDraft = {
+  recipeName: string
+  servings: number | null
+  items: Array<{
+    rawText: string
+    name: string
+    quantity: number | null
+    unit: string | null
+    grams: number | null
+    role: 'main' | 'seasoning'
+    needsGrams: boolean
+    defaultAction: 'keep' | 'ignore'
+  }>
+  provider: 'openai'
+  model: string
+  quota: {
+    parseCallId: string
+    dailyUsed: number
+    dailyLimit: number
+    monthlyUsed: number
+    monthlyLimit: number
+    maxChars: number
+  }
+}
+```
+
+AI 只返回草稿。它不返回 `ingredientId`，不创建食材，也不写 `recipes`、`recipe_items` 或候选池。`g` 直接保留，`kg` 和 `mg` 由函数确定性换算为克。非克单位不会推断克重。主要营养来源缺少克重时返回 `needsGrams: true`。盐、胡椒、酱油、醋、蒜末、香料和水默认忽略。油、糖、芝麻酱等热量明显的调味品也默认忽略，用户主动恢复并确认克重后才能正式保存。
+
+服务端默认每位用户每日 10 次、每月 100 次。每次实际模型调用写入私有 `recipe_parse_calls`，记录状态、模型和 token 数，不保存用户粘贴的菜谱正文。OpenAI 请求使用 `store: false` 和经过哈希的用户安全标识。前端不能直接读取或修改调用记录和限额策略。
+
+当前远端未配置 `OPENAI_API_KEY`，登录用户调用会稳定返回 `RECIPE_PARSE_NOT_CONFIGURED`，且不会占用解析次数或产生模型费用。配置并完成真实样本验证前，前端应保留本地拆行和手动修正，不显示 AI 解析成功。
+
+#### 食材搜索和批量匹配
+
+```ts
+await supabase.rpc('search_ingredients', {
+  p_query: '牛肉',
+  p_limit: 30,
+})
+
+await supabase.rpc('match_recipe_ingredients', {
+  p_items: [{ position: 0, name: '牛肉' }],
+})
+```
+
+两个接口只返回当前用户已有 `ingredients`。批量匹配可以返回 `matched`、`possible_match` 或 `unmatched`。完整同名和用户已确认别名可以成为 `matched`。模糊结果只作为建议。前端仍需让用户确认最终 `ingredientId`，不能自动创建新食材。
+
+#### 正式保存
+
+```ts
+const idempotencyKey = crypto.randomUUID()
+
+await supabase.rpc('create_recipe_with_candidate', {
+  p_name: '番茄炖牛肉',
+  p_servings: 2,
+  p_items: [
+    { ingredientId: beefId, grams: 500, note: '' },
+    { ingredientId: onionId, grams: 200, note: '' },
+  ],
+  p_idempotency_key: idempotencyKey,
+})
+```
+
+每个正式条目必须有属于当前用户的 `ingredientId` 和正数 `grams`。RPC 在一个事务中创建 `recipes`、全部 `recipe_items` 和 `candidate` 状态的 `recipe_candidates`。任一步失败全部回滚。同一用户标准化同名菜谱不会覆盖，返回 `DUPLICATE_RECIPE_NAME`。
+
+同一幂等键和相同请求返回第一次结果，不重复创建。相同键用于不同请求返回 `IDEMPOTENCY_CONFLICT`。网络结果未知时使用原键调用：
+
+```ts
+await supabase.rpc('get_operation_result', {
+  p_operation_type: 'create_recipe',
+  p_idempotency_key: idempotencyKey,
+})
+```
+
+`recipes`、`recipe_items` 和 `recipe_candidates` 的直接新增、修改和删除权限已经移除。正式创建只能通过 RPC。创建 RPC 会同时验证菜谱归属和食材归属，因此不能把其他用户的 `ingredient_id` 写进自己的 `recipe_items`。
+
+| 错误码 | 前端行为 |
+|---|---|
+| `AUTH_REQUIRED` | 回登录页并保留本地粘贴文本。 |
+| `RECIPE_PARSE_INPUT_INVALID` | 提示文本为空或超过 20,000 字符。 |
+| `RECIPE_PARSE_NOT_CONFIGURED` | 保留文本，退回本地拆行和手动修正。 |
+| `RECIPE_PARSE_UNAVAILABLE`、`RECIPE_PARSE_RESPONSE_INVALID` | 保留文本和已修改内容，允许用户稍后重试或手动修正。 |
+| `RATE_LIMITED` | 显示当日或当月次数已用完，不自动重复调用。 |
+| `RECIPE_NAME_REQUIRED`、`RECIPE_SERVINGS_INVALID` | 标出菜名或份数。 |
+| `RECIPE_ITEMS_INVALID`、`INGREDIENT_MATCH_REQUIRED`、`GRAMS_REQUIRED` | 根据 `error.details.position` 和 `field` 标出对应食材行。 |
+| `INVALID_REFERENCE` | 重新搜索食材。它可能已删除或不属于当前用户。 |
+| `DUPLICATE_RECIPE_NAME` | 不覆盖旧菜谱，要求用户改名后使用新幂等键保存。 |
+| `IDEMPOTENCY_REQUIRED`、`IDEMPOTENCY_CONFLICT` | 保留当前内容，不用新键盲目重试未知结果。 |
+
+直接加入本周仍未支持。保存成功只加入候选菜池，之后使用现有周计划编辑流程。
+
 ## 9. 新需求处理规则
 
 当 Figma 出现本文没有的数据时：
@@ -532,7 +643,8 @@ const { data, error } = await supabase.rpc('search_receipt_ingredients', {
 1. 补齐第一版可选单品的 `serving_grams`。
 2. 将 Excel v8 新增食材、配方和真实饮食数据转换为当前四层模型。
 3. 前端真实 Supabase 联调 `get_today`、`search_meal_components`、`save_meal` 和 `update_meal`。**已完成。**
-4. FR-002 厨房与采购真实数据闭环。**后端已完成并验证，等待前端接入。**
+4. FR-002 厨房与采购真实数据闭环。**后端和前端已完成，等待产品验收。**
+5. FR-003 数据库事务、RLS 和 Edge Function。**数据库与函数部署已完成；等待配置 OpenAI API key 后验证真实解析。**
 
 ## 11. 新需求记录
 
@@ -545,4 +657,4 @@ const { data, error } = await supabase.rpc('search_receipt_ingredients', {
 
 ### 2026-07-15 · FR-003 粘贴解析菜谱评估
 
-产品已经确认粘贴解析是第一版主入口，手动新建只作为次级入口或解析后修正。当前粘贴解析、食材批量匹配、原子创建菜谱和加入候选池仍为未支持。现有 `recipe_items` 只接受已有食材和克重。后端还没有 `parse-recipe` Edge Function、正式保存 RPC、创建幂等类型或通用食材搜索契约。前端不能把解析或保存表现为真实成功。直接加入本周也保持未支持。完整方案和待确认问题记录在 `docs/feature-requests.md` 的 FR-003。
+产品已经确认粘贴解析是第一版主入口，手动新建只作为次级入口或解析后修正。后端已部署通用食材搜索、批量匹配、原子创建菜谱并加入候选池、创建幂等和 `parse-recipe` Edge Function。数据库能力已完成远端事务、RLS、跨用户、重复请求和失败回滚验证。当前唯一未完成项是服务端尚未配置 `OPENAI_API_KEY`，因此真实 AI 解析仍返回 `RECIPE_PARSE_NOT_CONFIGURED`。直接加入本周保持未支持。
