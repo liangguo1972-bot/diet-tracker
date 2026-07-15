@@ -81,12 +81,20 @@ const mapAzureReceipt = (operation: AzureAnalyzeOperation) => {
     if (!value) return [];
     const name = fieldText(value.Description) || fieldText(value.Name);
     if (!name) return [];
+    const unit = fieldText(value.Unit) || null;
+    const providerQuantity = fieldNumber(value.Quantity);
+    const price = fieldNumber(value.TotalPrice) ?? fieldNumber(value.Price) ?? fieldNumber(value.UnitPrice);
+    const quantityMatchesPrice = providerQuantity !== null && price !== null
+      && Math.abs(providerQuantity - price) <= 0.000001;
+    const quantity = providerQuantity !== null && providerQuantity > 0 && unit && !quantityMatchesPrice
+      ? providerQuantity
+      : null;
     return [{
       name,
       line: typeof item.content === "string" ? item.content : name,
-      quantity: fieldNumber(value.Quantity),
-      unit: fieldText(value.Unit) || null,
-      price: fieldNumber(value.TotalPrice) ?? fieldNumber(value.Price) ?? fieldNumber(value.UnitPrice),
+      quantity,
+      unit,
+      price,
     }];
   });
   return {

@@ -59,7 +59,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 | `meals` | 一顿饭的日期和餐次 |
 | `meal_items` | 一顿饭中的成品或单品，`position` 保存显示顺序 |
 | `targets` | 每日热量和蛋白目标，每位用户一条 |
-| `inventory` | 真实库存批次。`quantity` 为当前可用量，`unit` 为原始量词，`grams_per_unit` 只在后端有可信来源时填写 |
+| `inventory` | 真实库存批次。`quantity` 为当前可用量，`unit` 为原始量词，`grams_per_unit` 只在后端有可信来源时填写。`storage` 只允许 `常温`、`冷藏`、`冷冻` 或空值 |
 | `inventory_movements` | 不可直接写入的库存流水。记录采购和做饭扣减 |
 | `recipe_candidates` | 用户的候选菜池状态和顺序 |
 | `weekly_plans` | 每周计划主记录 |
@@ -466,8 +466,8 @@ await supabase.rpc('update_receipt_items', {
     ingredientId: item.ingredientId ?? null,
     action: 'add_to_inventory', // 或 'ignore'
     confirmedName: item.confirmedName ?? item.rawName,
-    confirmedQuantity: item.confirmedQuantity,
-    confirmedUnit: item.confirmedUnit,
+    confirmedQuantity: item.confirmedQuantity, // 可以为空
+    confirmedUnit: item.confirmedUnit, // 可以为空
     storage: '冷藏',
   })),
 })
@@ -478,9 +478,25 @@ await supabase.rpc('confirm_receipt_import', {
 })
 ```
 
-`update_receipt_items` 必须一次提交该导入的全部商品行。`add_to_inventory` 行必须有确认名称、正数数量和量词。选择已有食材时，`ingredientId` 必须属于当前用户。`ingredientId: null` 表示未匹配库存占位。确认成功后，后端在一个事务中创建库存和 `purchase` 流水，并回写每行的 `inventoryId`。
+`update_receipt_items` 必须一次提交该导入的全部商品行。`add_to_inventory` 行必须有确认名称，并从 `常温`、`冷藏`、`冷冻` 中选择存放位置。选择已有食材时，`ingredientId` 必须属于当前用户。`ingredientId: null` 表示未匹配库存占位。确认成功后，后端在一个事务中创建库存和 `purchase` 流水，并回写每行的 `inventoryId`。
 
-匹配优先级是用户已确认别名、已有食材同名、低置信度推荐。推荐项仍需用户确认。未匹配库存可以被 `search_cook_inventory` 返回，并可通过 `save_cook_session.p_unmatched_items` 按相同量词扣减，但不会写入 `cook_items`，因此不能成为可靠营养来源或单品选择器结果。
+数量和量词由后端提供安全默认值。OCR 只有同时返回正数数量和非空单位，并且数量不等于识别价格时，才会把它们带入确认草稿。其他情况固定返回 `confirmedQuantity: 1` 和 `confirmedUnit: '件'`。原始 OCR 数量仍保存在 `rawQuantity`，供排查识别结果使用。价格只进入 `rawPrice`，不能被复制到 `confirmedQuantity`。
+
+前端提交时可以省略 `confirmedUnit`。后端会忽略同时提交但缺少单位依据的数量，并保存为 `1 件`。前端不能根据商品名称猜测“盒、袋、把、克”等单位。“件”只表示一个通用库存项目，不代表克重、营养份量或包装规格。
+
+确认页选择已有食材时使用：
+
+```ts
+const { data, error } = await supabase.rpc('search_receipt_ingredients', {
+  p_query: '香蕉',
+})
+```
+
+返回当前用户最多 30 条已有食材，包括 `ingredient_id`、`name`、`category`、`package_spec`、`storage_guidance` 和 `is_verified`。它不返回其他用户的食材。`storage_guidance` 是食材保存建议，例如“冷藏约一周”，不等于库存位置三值枚举。
+
+匹配优先级是用户已确认的完整别名、已有食材完整同名、低置信度推荐。完整别名按用户隔离。用户把不同小票名称分别确认到同一食材后，多个别名可以指向同一 `ingredient_id`。第一次遇到跨语言或新品牌名称时不会进行语义猜测，需要用户通过 `search_receipt_ingredients` 明确选择。
+
+包含关系和其他模糊结果只返回 `possible_match`，推荐项仍需用户确认。普通酸奶与无糖酸奶、普通牛奶与低脂或高钙牛奶等规格敏感名称，只要不是完整同名或已经人工确认的完整别名，就不能自动成为 `matched`。未匹配库存可以被 `search_cook_inventory` 返回，并可通过 `save_cook_session.p_unmatched_items` 按相同量词扣减，但不会写入 `cook_items`，因此不能成为可靠营养来源或单品选择器结果。
 
 | 错误码 | 前端行为 |
 |---|---|
@@ -488,11 +504,18 @@ await supabase.rpc('confirm_receipt_import', {
 | `OCR_NOT_CONFIGURED` | 保留上传记录，提示识别服务尚未配置。不要显示商品草稿。 |
 | `OCR_UNAVAILABLE`、`OCR_RESPONSE_INVALID`、`RECEIPT_FILE_UNAVAILABLE` | 保留上传记录并允许使用同一任务重试。 |
 | `RECEIPT_RECOGNITION_INVALID` | 提示识别结果无效，保留原图和失败状态。 |
+| `RECEIPT_ITEMS_INVALID`、`RECEIPT_ITEMS_INCOMPLETE` | 保留整页草稿，提示重新加载或检查提交内容。 |
+| `RECEIPT_ITEM_NAME_REQUIRED` | 在 `error.details` 指定的商品行内提示补充名称。 |
+| `RECEIPT_ITEM_QUANTITY_INVALID` | 在 `error.details` 指定的商品行内提示数量必须大于 0。省略数量和单位时后端会使用 `1 件`，不会返回此错误。 |
+| `RECEIPT_ITEM_UNIT_INVALID` | 仅用于异常或旧草稿。正常省略单位会由后端使用 `件`。 |
+| `RECEIPT_ITEM_STORAGE_INVALID` | 在 `error.details` 指定的商品行内要求选择 `常温`、`冷藏` 或 `冷冻`。 |
 | `STATUS_CONFLICT` | 重新读取导入任务。已确认任务不能再次入库。 |
 | `IDEMPOTENCY_CONFLICT` | 同一确认键已用于不同内容。不要自动新建键。 |
 | `INVALID_REFERENCE`、`AUTH_REQUIRED` | 不透露其他用户导入是否存在。回登录或重新读取当前列表。 |
 
 同一文件哈希会返回已有导入任务。`confirm_receipt_import` 使用幂等键：同键同内容返回第一次成功结果，同键不同内容返回 `IDEMPOTENCY_CONFLICT`。确认后的导入使用新键会返回 `STATUS_CONFLICT`，不会再次写库存。
+
+商品行字段错误的 `error.message` 是上表稳定错误码。`error.details` 是 JSON 字符串，结构为 `{ "receiptItemId": "...", "field": "storage" }`。前端只在提交失败后解析并显示对应行的内联错误，不需要在页面常驻显示整页校验警告。
 
 ## 9. 新需求处理规则
 
@@ -519,6 +542,10 @@ await supabase.rpc('confirm_receipt_import', {
 
 1. `get_shopping_list` 会返回 `toPurchaseGrams = 0` 且状态仍为 `pending` 的库存已覆盖条目。`complete_purchase` 又要求提交数量大于 0，当前没有“无需采购”或自动完成条目的能力。因此前端不为这类条目制造购买数量，也不能把它们误报为已完成。后端需要确认生成时自动完成、增加跳过能力，或调整清单完成判定。
 2. `list_recipe_candidates` 只返回已经进入候选菜池的食谱。候选菜池为空时，现有契约没有可供前端发现其他真实食谱并加入候选池的读取能力。第一版前端只能显示空状态，不能用 Figma 样例补齐。
+
+### 2026-07-15 · FR-003 添加菜谱评估
+
+手动创建菜谱、创建 `recipe_items` 并加入候选菜池当前仍为未支持。现有 `recipe_items` 只接受已有食材和克重。当前没有原子创建 RPC、幂等键、稳定错误码或非克单位模型。前端不能把添加菜谱页面的保存、直接加入本周或粘贴解析表现为真实能力。完整评估记录在 `docs/feature-requests.md` 的 FR-003。
 
 ### 2026-07-15 · Figma v2 确认页与添加菜谱缺口
 

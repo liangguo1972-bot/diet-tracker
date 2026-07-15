@@ -1201,6 +1201,17 @@ export type Database = {
           unit_kind: string
         }[]
       }
+      search_receipt_ingredients: {
+        Args: { p_query?: string }
+        Returns: {
+          category: string | null
+          ingredient_id: string
+          is_verified: boolean
+          name: string
+          package_spec: string | null
+          storage_guidance: string | null
+        }[]
+      }
       search_meal_components: {
         Args: { p_query: string; p_source_type: string }
         Returns: {
