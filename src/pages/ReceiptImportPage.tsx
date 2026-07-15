@@ -8,12 +8,14 @@ const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp']
 const historyStatus: Record<ReceiptImportSummary['status'], string> = { uploaded: '待识别', processing: '识别中', ready_for_review: '待确认', failed: '识别失败', confirmed: '已入库', cancelled: '已取消' }
 
 function recognitionMessage(receipt: ReceiptImport): string {
-  if (receipt.errorCode === 'OCR_NOT_CONFIGURED') return '照片已安全保存。识别服务尚未配置，当前不会生成商品行。'
-  if (receipt.errorCode === 'OCR_UNAVAILABLE') return '识别服务暂时不可用。上传记录已保留，可以稍后重试。'
-  if (receipt.errorCode === 'OCR_RESPONSE_INVALID') return '识别服务返回了无效结果。上传记录已保留。'
-  if (receipt.errorCode === 'RECEIPT_FILE_UNAVAILABLE') return '服务端无法读取这张照片。请重新选择原照片后重试。'
-  return '小票识别失败。上传记录已保留。'
+  if (receipt.errorCode === 'OCR_NOT_CONFIGURED') return '识别服务尚未配置，照片已保留，稍后可重试。'
+  if (receipt.errorCode === 'OCR_UNAVAILABLE') return '识别服务暂时不可用，照片已保留，稍后可重试。'
+  if (receipt.errorCode === 'OCR_RESPONSE_INVALID') return '识别结果暂时无法读取，照片已保留，稍后可重试。'
+  if (receipt.errorCode === 'RECEIPT_FILE_UNAVAILABLE') return '照片暂时无法读取，导入记录已保留。请重新选择原照片后重试。'
+  return '小票识别失败，照片已保留，稍后可重试。'
 }
+
+const recognitionConnectionMessage = '暂时无法连接识别服务，照片已保留，稍后可重试。'
 
 export function ReceiptImportPage({ onBack, onReview, onInventory, onTab, onSessionExpired }: {
   onBack: () => void
@@ -46,6 +48,39 @@ export function ReceiptImportPage({ onBack, onReview, onInventory, onTab, onSess
 
   useEffect(() => { void loadRecent() }, [loadRecent])
 
+  function showReceiptResult(result: ReceiptImport) {
+    setReceipt(result)
+    if (result.status === 'ready_for_review' && result.items.length > 0) {
+      onReview(result.receiptImportId)
+      return
+    }
+    if (result.status === 'ready_for_review') {
+      setError('没有识别到可确认的商品，照片已保留，稍后可重试。')
+    } else if (result.status === 'failed') {
+      setError(recognitionMessage(result))
+    } else if (result.status === 'processing') {
+      setError('小票仍在识别中，请稍后刷新最近导入。')
+    } else {
+      setError(recognitionConnectionMessage)
+    }
+  }
+
+  async function recoverImport(receiptImportId: string, fallbackMessage = recognitionConnectionMessage) {
+    try {
+      const current = await receiptAdapter.get(receiptImportId)
+      if (current.status === 'failed' || current.status === 'ready_for_review' || current.status === 'processing') showReceiptResult(current)
+      else {
+        setReceipt(current)
+        setError(fallbackMessage)
+      }
+    } catch (reason) {
+      if (isAuthenticationRequired(reason)) onSessionExpired()
+      else setError(fallbackMessage)
+    } finally {
+      await loadRecent()
+    }
+  }
+
   async function start(selected: File | null = file) {
     if (!selected || activeRef.current) return
     if (!acceptedTypes.includes(selected.type) || selected.size <= 0 || selected.size > 10 * 1024 * 1024) {
@@ -56,27 +91,31 @@ export function ReceiptImportPage({ onBack, onReview, onInventory, onTab, onSess
     setFile(selected)
     setError(null)
     setPhase('uploading')
+    let receiptImportId: string | null = null
+    let uploaded = false
     try {
       const created = await receiptAdapter.create(selected, await fileSha256(selected))
-      if (created.status === 'ready_for_review') {
-        onReview(created.receiptImportId)
-        return
-      }
+      receiptImportId = created.receiptImportId
+      await loadRecent()
+      if (created.status === 'ready_for_review') return await recoverImport(created.receiptImportId)
       if (created.status === 'confirmed') {
         setReceipt(await receiptAdapter.get(created.receiptImportId))
         return
       }
       await receiptAdapter.upload(created.storagePath, selected)
+      uploaded = true
+      await loadRecent()
       setPhase('recognizing')
       const result = await receiptAdapter.process(created.receiptImportId)
-      setReceipt(result)
-      void loadRecent()
-      if (result.status === 'ready_for_review') onReview(result.receiptImportId)
-      else if (result.status === 'failed') setError(recognitionMessage(result))
-      else setError('识别仍在处理中，请稍后重试。')
+      showReceiptResult(result)
+      await loadRecent()
     } catch (reason) {
       if (isAuthenticationRequired(reason)) onSessionExpired()
-      else setError(reason instanceof Error ? reason.message : '上传失败。照片选择已保留，可以重试。')
+      else if (receiptImportId && uploaded) await recoverImport(receiptImportId)
+      else {
+        setError('照片上传失败，已保留当前选择，请稍后重试。')
+        if (receiptImportId) await loadRecent()
+      }
     } finally {
       activeRef.current = false
       setPhase('idle')
@@ -90,13 +129,11 @@ export function ReceiptImportPage({ onBack, onReview, onInventory, onTab, onSess
     setError(null)
     try {
       const result = await receiptAdapter.process(receiptImportId)
-      setReceipt(result)
-      if (result.status === 'ready_for_review') onReview(result.receiptImportId)
-      else if (result.status === 'failed') setError(recognitionMessage(result))
+      showReceiptResult(result)
       await loadRecent()
     } catch (reason) {
       if (isAuthenticationRequired(reason)) onSessionExpired()
-      else setError(reason instanceof Error ? reason.message : '识别重试失败，上传记录仍然保留。')
+      else await recoverImport(receiptImportId)
     } finally {
       activeRef.current = false
       setPhase('idle')
@@ -138,7 +175,7 @@ export function ReceiptImportPage({ onBack, onReview, onInventory, onTab, onSess
           {recentLoading && <div className="section-card"><div className="skeleton wide" /></div>}
           {recentError && <div className="status-card error-card"><p>{recentError}</p><button className="text-button" onClick={loadRecent}>重试</button></div>}
           {!recentLoading && !recentError && recent.length === 0 && <div className="status-card empty-card"><b>还没有导入记录</b><p>上传第一张照片后会显示在这里。</p></div>}
-          {!recentLoading && !recentError && recent.length > 0 && <div className="section-card compact-list">{recent.map((item) => <button className="feature-row" key={item.receiptImportId} disabled={busy || !['ready_for_review', 'failed'].includes(item.status)} onClick={() => item.status === 'ready_for_review' ? onReview(item.receiptImportId) : void retryRecognition(item.receiptImportId)}><span><b>{item.merchantName || item.fileName}</b><small>{item.errorCode === 'OCR_NOT_CONFIGURED' ? '识别服务尚未配置' : historyStatus[item.status]}</small></span><strong>{item.status === 'ready_for_review' ? '继续确认' : item.status === 'failed' ? '重试识别' : historyStatus[item.status]}</strong></button>)}</div>}
+          {!recentLoading && !recentError && recent.length > 0 && <div className="section-card compact-list">{recent.map((item) => <button className="feature-row" key={item.receiptImportId} disabled={busy || !['ready_for_review', 'failed', 'uploaded'].includes(item.status)} onClick={() => item.status === 'ready_for_review' ? void recoverImport(item.receiptImportId) : void retryRecognition(item.receiptImportId)}><span><b>{item.merchantName || item.fileName}</b><small>{item.errorCode === 'OCR_NOT_CONFIGURED' ? '识别服务尚未配置' : historyStatus[item.status]}</small></span><strong>{item.status === 'ready_for_review' ? '继续确认' : item.status === 'failed' || item.status === 'uploaded' ? '重试识别' : historyStatus[item.status]}</strong></button>)}</div>}
         </section>
         <p className="scope-note">识别结果只用于库存确认。未匹配商品会作为库存占位，不会进入记餐单品选择器。</p>
       </div>
