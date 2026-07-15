@@ -450,7 +450,7 @@ await supabase.functions.invoke('process-receipt', {
 
 原图仍按 10 MB 上限上传并保存在私有 `receipt-source`。Azure F0 单文件上限为 4 MB，Supabase 免费 Edge Function 无法稳定压缩大于 5 MB 的图片。因此前端会在浏览器内把大图缩放为最长边 2400 像素、3.5 MB 以下的临时 JPEG，并随识别请求发送。临时副本不另行保存。Edge Function 仍会验证登录、导入归属和私有原图确实存在，再把临时副本发送给 Azure。重试旧导入时，前端从用户自己的私有路径下载原图并重新生成临时副本。
 
-2026-07-15 已用 9.49 MB、4032×3024 的 Whole Foods PNG 远端验证。浏览器等价识别副本约 1.06 MB，Azure 返回 13 条商品行，状态进入 `ready_for_review`。13 条名称、识别出的数量和价格均写入真实草稿；确认入库仍必须由用户完成。
+2026-07-15 已用 9.49 MB、4032×3024 的 Whole Foods PNG 完成 Production 浏览器端验证。浏览器生成的识别副本约 1.06 MB，Azure 返回 13 条商品行，页面真实进入“确认小票”，状态为 `ready_for_review`。13 条名称、识别出的数量和价格均写入真实草稿；确认入库仍必须由用户完成。
 
 草稿读取和确认：
 

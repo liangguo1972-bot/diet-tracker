@@ -337,7 +337,7 @@ Edge Function 必须验证调用者 JWT，并验证传入 `receipt_import_id` �
 | 2026-07-14 | 当前后端对话 | 补充三类 OCR 路线、统一适配格式和前端 QA 状态 | 产品采用并行推进；前端可先验收已支持契约，产品再根据准确率、隐私和实际费用选择 OCR 服务 |
 | 2026-07-14 | 开发 diet-tracker React 前端 | 接入照片上传、真实识别状态、小票确认、幂等入库和未匹配库存做饭，状态改为 `frontend_connected` | 33 项自动测试和生产构建通过；当前真实 OCR 仍返回 `OCR_NOT_CONFIGURED`，等待产品主对话验收与后端配置服务 |
 | 2026-07-15 | 开发 diet-tracker React 前端 | 修复识别函数连接失败后的导入记录恢复和错误文案 | 创建与上传成功后立即刷新真实导入记录；识别失败时重新读取当前任务，不再显示 Edge Function 英文技术错误，也不会用空草稿进入确认页 |
-| 2026-07-15 | 当前后端对话 | 创建 Azure Document Intelligence `Free F0`，配置 Supabase Secrets，接入 `prebuilt-receipt`，并补充浏览器端大图临时压缩 | 9.49 MB PNG 在 Edge 内压缩会超过免费计算资源；改为保留私有原图并发送 1.06 MB 临时副本后，真实识别返回 13 条商品行并进入待确认状态 |
+| 2026-07-15 | 当前后端对话 | 创建 Azure Document Intelligence `Free F0`，配置 Supabase Secrets，接入 `prebuilt-receipt`，并补充浏览器端大图临时压缩 | 9.49 MB PNG 在 Edge 内压缩会超过免费计算资源；改为保留私有原图并发送 1.06 MB 临时副本后，正式账号已在 Production 返回 13 条商品行并进入“确认小票”页面 |
 
 
 ### FR-002 · 第一版扩展为记录 / 厨房 / 采购最小闭环
