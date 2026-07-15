@@ -15,6 +15,7 @@ export type ReceiptItem = {
   rawName: string
   rawQuantity: number | null
   rawUnit: string | null
+  rawPrice: number | null
   ingredientId: string | null
   ingredientName: string | null
   matchStatus: ReceiptMatchStatus

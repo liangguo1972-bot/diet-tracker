@@ -3,11 +3,12 @@ import type { MainTab } from '../components/BottomNav'
 import type { DrawnRecipe, PlanStatus, ShoppingListData, WeeklyPlan, WeeklyPlanItem } from '../fr002-types'
 import { createDrawnPlan, localDateKey, startOfWeek } from '../lib/fr002'
 import { EditWeeklyPlanPage } from '../pages/EditWeeklyPlanPage'
+import { AddRecipePage } from '../pages/AddRecipePage'
 import { RecipeCandidatesPage } from '../pages/RecipeCandidatesPage'
 import { ShoppingListPage } from '../pages/ShoppingListPage'
 import { WeeklyPlanPage } from '../pages/WeeklyPlanPage'
 
-type PurchaseScreen = 'candidates' | 'plan' | 'edit' | 'shopping'
+type PurchaseScreen = 'candidates' | 'add-recipe' | 'plan' | 'edit' | 'shopping'
 
 export function PurchaseFlow({ onTab, onSessionExpired }: {
   onTab: (tab: MainTab) => void
@@ -50,7 +51,8 @@ export function PurchaseFlow({ onTab, onSessionExpired }: {
   }
 
   if (screen === 'edit') return <EditWeeklyPlanPage weekStart={weekStart} items={items} onBack={() => setScreen('plan')} onSaved={usePlan} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  if (screen === 'add-recipe') return <AddRecipePage onBack={() => setScreen('candidates')} onTab={changeTab} />
   if (screen === 'shopping' && planId) return <ShoppingListPage planId={planId} initialList={shoppingList} onBack={() => setScreen('plan')} onDone={() => onTab('厨房')} onTab={changeTab} onSessionExpired={onSessionExpired} />
   if (screen === 'plan') return <WeeklyPlanPage weekStart={weekStart} planId={planId} status={planStatus} items={items} onBack={() => setScreen('candidates')} onEdit={() => setScreen('edit')} onPlanSaved={usePlan} onShopping={showShopping} onTab={changeTab} onSessionExpired={onSessionExpired} />
-  return <RecipeCandidatesPage weekStart={weekStart} onDrawn={useDraw} onPlan={usePlan} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  return <RecipeCandidatesPage weekStart={weekStart} onAddRecipe={() => setScreen('add-recipe')} onDrawn={useDraw} onPlan={usePlan} onTab={changeTab} onSessionExpired={onSessionExpired} />
 }

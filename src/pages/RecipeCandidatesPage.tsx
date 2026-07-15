@@ -13,8 +13,9 @@ const statusLabels: Record<CandidateStatus, string> = {
   skipped: '跳过',
 }
 
-export function RecipeCandidatesPage({ weekStart, onDrawn, onPlan, onTab, onSessionExpired }: {
+export function RecipeCandidatesPage({ weekStart, onAddRecipe, onDrawn, onPlan, onTab, onSessionExpired }: {
   weekStart: string
+  onAddRecipe: () => void
   onDrawn: (recipes: DrawnRecipe[]) => void
   onPlan: (plan: WeeklyPlan) => void
   onTab: (tab: MainTab) => void
@@ -76,7 +77,7 @@ export function RecipeCandidatesPage({ weekStart, onDrawn, onPlan, onTab, onSess
   return (
     <main className="phone page grocery-page">
       <div className="page-content with-action">
-        <header className="topbar"><h1>采购</h1><span className="date-note">{prettyDate(weekStart)} 开始</span></header>
+        <header className="topbar"><h1>采购</h1><button className="text-button neutral" onClick={onAddRecipe}>添加菜谱</button></header>
         <section className="candidate-hero"><span className="eyebrow-label">候选菜池</span><h2>翻一张，决定这周吃什么</h2><p>随机结果只来自你的真实候选菜池。</p></section>
         {loading && <LoadingState rows={7} />}
         {error && <ErrorState message={error} onRetry={load} />}

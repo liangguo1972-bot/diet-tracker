@@ -45,6 +45,7 @@ const parseReceiptItem = (value: Json): ReceiptItem => {
     rawName: text(item.rawName),
     rawQuantity: numeric(item.rawQuantity),
     rawUnit: optionalText(item.rawUnit),
+    rawPrice: numeric(item.rawPrice),
     ingredientId: optionalText(item.ingredientId),
     ingredientName: optionalText(item.ingredientName),
     matchStatus: member(item.matchStatus, matches, 'unmatched'),
