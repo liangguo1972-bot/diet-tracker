@@ -4,6 +4,10 @@ import type { ConfirmReceiptResult, ReceiptAction, ReceiptImport, ReceiptImportC
 import { toDataError, toOperationError } from './errors'
 
 type JsonRecord = Record<string, Json | undefined>
+type ReceiptOcrImage = { imageBase64: string; imageContentType: string }
+
+const ocrTargetBytes = 3_500_000
+const ocrMaxDimension = 2400
 
 const record = (value: Json | undefined, label: string): JsonRecord => {
   if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error(`${label}格式无效。`)
@@ -104,6 +108,46 @@ export async function fileSha256(file: File): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onerror = () => reject(reader.error ?? new Error('照片读取失败。'))
+  reader.onload = () => {
+    const result = typeof reader.result === 'string' ? reader.result : ''
+    const separator = result.indexOf(',')
+    if (separator < 0) reject(new Error('照片读取失败。'))
+    else resolve(result.slice(separator + 1))
+  }
+  reader.readAsDataURL(blob)
+})
+
+async function prepareReceiptOcrImage(source: Blob): Promise<ReceiptOcrImage> {
+  if (source.size <= ocrTargetBytes) {
+    return { imageBase64: await blobToBase64(source), imageContentType: source.type || 'image/jpeg' }
+  }
+
+  const image = await createImageBitmap(source, { imageOrientation: 'from-image' })
+  try {
+    const scale = Math.min(1, ocrMaxDimension / Math.max(image.width, image.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(image.width * scale))
+    canvas.height = Math.max(1, Math.round(image.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('照片处理失败。')
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+    const qualities = [0.84, 0.72, 0.6]
+    let compressed: Blob | null = null
+    for (const quality of qualities) {
+      compressed = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+      if (compressed && compressed.size <= ocrTargetBytes) break
+    }
+    if (!compressed || compressed.size > ocrTargetBytes) throw new Error('照片处理失败。')
+    return { imageBase64: await blobToBase64(compressed), imageContentType: 'image/jpeg' }
+  } finally {
+    image.close()
+  }
+}
+
 export const receiptAdapter = {
   async create(file: File, hash: string): Promise<ReceiptImportCreated> {
     const { data, error } = await client().rpc('create_receipt_import', {
@@ -129,8 +173,18 @@ export const receiptAdapter = {
     if (error) throw toDataError(error)
     return parseReceiptImports(data)
   },
-  async process(receiptImportId: string): Promise<ReceiptImport> {
-    const response = await client().functions.invoke('process-receipt', { body: { receiptImportId } })
+  async process(receiptImportId: string, selectedFile?: File): Promise<ReceiptImport> {
+    const current = await this.get(receiptImportId)
+    let source: Blob = selectedFile ?? new Blob()
+    if (!selectedFile) {
+      const { data, error } = await client().storage.from('receipt-source').download(current.storagePath)
+      if (error || !data) throw toOperationError(error ?? new Error('照片暂时无法读取。'))
+      source = data
+    }
+    const ocrImage = await prepareReceiptOcrImage(source)
+    const response = await client().functions.invoke('process-receipt', {
+      body: { receiptImportId, ...ocrImage },
+    })
     const draft = await this.get(receiptImportId)
     if (response.error && draft.status !== 'failed') throw toOperationError(response.error)
     return draft

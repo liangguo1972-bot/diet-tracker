@@ -1,6 +1,6 @@
 # Diet Tracker · 前后端数据契约
 
-最后更新：2026-07-14
+最后更新：2026-07-15
 
 ## 1. 这份文档的作用
 
@@ -438,11 +438,19 @@ await supabase.storage.from('receipt-source').upload(created.storagePath, file, 
 })
 
 await supabase.functions.invoke('process-receipt', {
-  body: { receiptImportId: created.receiptImportId },
+  body: {
+    receiptImportId: created.receiptImportId,
+    imageBase64: compressedForOcr,
+    imageContentType: 'image/jpeg',
+  },
 })
 ```
 
-`process-receipt` 只接受已登录用户。它会验证导入归属后读取私有图片，再调用服务器端 OCR 服务。当前远端没有配置 `RECEIPT_OCR_URL` 和 `RECEIPT_OCR_API_KEY`，所以调用会返回 `OCR_NOT_CONFIGURED`。这不是前端可重试后自动恢复的问题。配置完成前，前端应保留上传记录并提示稍后重试，不显示伪造的识别商品行。
+`process-receipt` 只接受已登录用户。当前远端已接入 Azure Document Intelligence `prebuilt-receipt`。Azure endpoint 和 key 只保存在 Supabase Secrets，不进入浏览器或仓库。
+
+原图仍按 10 MB 上限上传并保存在私有 `receipt-source`。Azure F0 单文件上限为 4 MB，Supabase 免费 Edge Function 无法稳定压缩大于 5 MB 的图片。因此前端会在浏览器内把大图缩放为最长边 2400 像素、3.5 MB 以下的临时 JPEG，并随识别请求发送。临时副本不另行保存。Edge Function 仍会验证登录、导入归属和私有原图确实存在，再把临时副本发送给 Azure。重试旧导入时，前端从用户自己的私有路径下载原图并重新生成临时副本。
+
+2026-07-15 已用 9.49 MB、4032×3024 的 Whole Foods PNG 远端验证。浏览器等价识别副本约 1.06 MB，Azure 返回 13 条商品行，状态进入 `ready_for_review`。13 条名称、识别出的数量和价格均写入真实草稿；确认入库仍必须由用户完成。
 
 草稿读取和确认：
 

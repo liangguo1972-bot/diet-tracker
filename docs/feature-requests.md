@@ -1,6 +1,6 @@
 # Diet Tracker · 需求与思考记录
 
-最后更新：2026-07-14
+最后更新：2026-07-15
 
 ## 1. 这份文档的作用
 
@@ -68,7 +68,7 @@
 
 | 编号 | 需求 | 状态 | 当前负责人 | 最后更新 |
 |---|---|---|---|---|
-| FR-001 | 小票导入库存与食材匹配 | `frontend_connected` | 产品主对话验收 | 2026-07-14 |
+| FR-001 | 小票导入库存与食材匹配 | `frontend_connected` | 产品主对话验收 | 2026-07-15 |
 | FR-002 | 第一版扩展为记录 / 厨房 / 采购最小闭环 | `frontend_connected` | 产品主对话验收 | 2026-07-13 |
 
 ## 7. 需求详情
@@ -78,7 +78,7 @@
 **状态：** `frontend_connected`
 **提出位置：** 当前后端对话  
 **当前负责人：** 产品主对话验收
-**最后更新：** 2026-07-14
+**最后更新：** 2026-07-15
 
 #### 原始想法
 
@@ -232,24 +232,25 @@ Edge Function 必须验证调用者 JWT，并验证传入 `receipt_import_id` �
 4. `confirm_receipt_import` 是单一事务，使用幂等键。相同键和相同确认内容返回第一次结果。相同键用于另一张小票返回 `IDEMPOTENCY_CONFLICT`。任意验证失败会回滚整次入库。
 5. 匹配规则依次使用用户已确认别名、已有食材标准名和低置信度推荐。用户确认后，已匹配商品会写入别名。未匹配商品保留为空的 `ingredient_id`，作为库存占位。
 6. `search_cook_inventory` 已返回未匹配库存。`save_cook_session` 增加可选 `p_unmatched_items`，按原量词扣库存并写入 `cook_unmatched_items`，但不写入营养用的 `cook_items`，所以不会进入单品选择器。
-7. `process-receipt` Edge Function 已部署。它验证登录和导入归属，再从私有桶读取图片并调用服务器端 OCR 服务。当前项目未配置 `RECEIPT_OCR_URL` 与 `RECEIPT_OCR_API_KEY`，真实照片识别会稳定返回 `OCR_NOT_CONFIGURED`。前端需要展示可重试的识别失败状态，不能把它伪装为已识别。
+7. `process-receipt` Edge Function 已部署，并已接入 Azure Document Intelligence `prebuilt-receipt`。它验证登录、导入归属和私有原图存在后才发送识别副本。Azure endpoint 与 key 只保存在 Supabase Secrets。9.49 MB 真实小票已远端返回 13 条商品行并进入 `ready_for_review`。
 
 远端验证覆盖了匹配与未匹配草稿、人工确认、四批库存与四条流水的原子写入、重复确认、幂等冲突、未匹配库存做饭、单品选择器排除、私有图片本人读取、跨账号图片拒绝和未配置 OCR 错误。验证事务数据已回滚，私有图片权限测试记录已清理。
 
 #### OCR 服务接入选型信息
 
-当前 `process-receipt` 使用统一适配格式。`RECEIPT_OCR_URL` 指向服务器端识别适配器，`RECEIPT_OCR_API_KEY` 是该适配器使用的服务器端密钥。两项都通过 Supabase Secrets 配置，不进入前端环境变量或仓库。
+当前 `process-receipt` 已直接接入 Azure Document Intelligence。`RECEIPT_OCR_URL` 保存 Azure resource endpoint，`RECEIPT_OCR_API_KEY` 保存 Azure Key1。两项都通过 Supabase Secrets 配置，不进入前端环境变量或仓库。
 
-适配器预期接收：
+浏览器调用 Edge Function 时会发送：
 
 ```json
 {
+  "receiptImportId": "...",
   "imageBase64": "...",
-  "contentType": "image/jpeg"
+  "imageContentType": "image/jpeg"
 }
 ```
 
-请求头使用 `Authorization: Bearer <RECEIPT_OCR_API_KEY>`。适配器必须同步返回：
+`imageBase64` 是浏览器本地生成的临时识别副本。原图仍保存在私有 Storage。Edge Function 不信任副本中的用户信息，只使用已验证 JWT 对应的导入任务。它使用 `Ocp-Apim-Subscription-Key` 在服务器端调用 Azure，轮询分析结果并映射为统一草稿：
 
 ```json
 {
@@ -268,7 +269,7 @@ Edge Function 必须验证调用者 JWT，并验证传入 `receipt_import_id` �
 
 `quantity`、`unit` 和 `price` 允许为空。前端确认入库前仍必须让用户补齐名称、正数数量和量词。OCR 结果只生成建议，不能直接写库存。
 
-可选路线如下，产品主对话暂不需要立即选择：
+此前评估过的路线如下：
 
 | 路线 | 能力与接入影响 | 隐私风险 | 费用风险 |
 |---|---|---|---|
@@ -276,7 +277,9 @@ Edge Function 必须验证调用者 JWT，并验证传入 `receipt_import_id` �
 | Azure AI Document Intelligence `prebuilt-receipt` | 专用小票模型，原生返回商户、日期、商品名称、数量、单价和总价。Azure 提供 endpoint 与 subscription key，但接口是异步分析流程，当前 Edge Function 需要增加轮询和结果映射。 | 输入和结果在资源所在区域临时加密保存。Azure 官方说明分析结果最多保留 24 小时，并提供提前删除接口。 | 官方提供 F0 免费层，每月最多 500 页，适合前期验收。付费价格按区域和订阅报价，选择前需要用 Azure Pricing Calculator 核实。超出免费层后按页计费。 |
 | 通用视觉模型，例如 OpenAI GPT-4.1 mini | 支持图片输入和结构化输出，对不同语言、缩写和非标准商品行更灵活。它不是专用小票解析器，需要用真实样本测量漏行、错行和数量价格错配。当前 Edge Function 需要增加模型请求与统一 JSON 映射。 | OpenAI API 默认不使用输入输出训练模型，但默认滥用监控日志可保留最多 30 天。符合条件的组织可以申请 Zero Data Retention。小票可能包含地址、时间和支付信息，启用前需要确认可接受的保留策略。 | 当前文本价格为每百万输入 token 0.40 美元、输出 token 1.60 美元，图片还会转换为输入 token。单张成本受分辨率、图片细节和输出长度影响，不能只按文本价格估算。这个数字建议在选择前再次核实。 |
 
-无论选择哪条路线，都需要先用一组已获授权的真实照片做并排测试。测试只比较商品行召回、名称正确率、数量与价格对应、处理时间、单张实际费用和失败率。产品确认服务后，后端只补供应商适配和 Secrets，不改 FR-001 数据表或前端契约。
+2026-07-15 已选择 Azure F0 作为第一版。Azure 免费资源为 `Free F0`，不会自动转为 S0。F0 每月免费额度和限制仍需以 Azure 门户为准。当前实现不启用付费 Supabase 图片转换，也不创建其他付费资源。
+
+真实 9.49 MB PNG 首次尝试在 Edge Function 内压缩时触发 Supabase 免费计算上限。最终实现改为浏览器本地生成 3.5 MB 以下临时 JPEG，原图继续保存在私有 Storage，临时副本不另行存储。该图片远端识别得到 13 条商品行，名称、识别出的数量和价格与小票可见内容对应。
 
 官方资料：
 
@@ -334,6 +337,7 @@ Edge Function 必须验证调用者 JWT，并验证传入 `receipt_import_id` �
 | 2026-07-14 | 当前后端对话 | 补充三类 OCR 路线、统一适配格式和前端 QA 状态 | 产品采用并行推进；前端可先验收已支持契约，产品再根据准确率、隐私和实际费用选择 OCR 服务 |
 | 2026-07-14 | 开发 diet-tracker React 前端 | 接入照片上传、真实识别状态、小票确认、幂等入库和未匹配库存做饭，状态改为 `frontend_connected` | 33 项自动测试和生产构建通过；当前真实 OCR 仍返回 `OCR_NOT_CONFIGURED`，等待产品主对话验收与后端配置服务 |
 | 2026-07-15 | 开发 diet-tracker React 前端 | 修复识别函数连接失败后的导入记录恢复和错误文案 | 创建与上传成功后立即刷新真实导入记录；识别失败时重新读取当前任务，不再显示 Edge Function 英文技术错误，也不会用空草稿进入确认页 |
+| 2026-07-15 | 当前后端对话 | 创建 Azure Document Intelligence `Free F0`，配置 Supabase Secrets，接入 `prebuilt-receipt`，并补充浏览器端大图临时压缩 | 9.49 MB PNG 在 Edge 内压缩会超过免费计算资源；改为保留私有原图并发送 1.06 MB 临时副本后，真实识别返回 13 条商品行并进入待确认状态 |
 
 
 ### FR-002 · 第一版扩展为记录 / 厨房 / 采购最小闭环

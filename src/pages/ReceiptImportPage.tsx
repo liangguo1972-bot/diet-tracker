@@ -106,7 +106,7 @@ export function ReceiptImportPage({ onBack, onReview, onInventory, onTab, onSess
       uploaded = true
       await loadRecent()
       setPhase('recognizing')
-      const result = await receiptAdapter.process(created.receiptImportId)
+      const result = await receiptAdapter.process(created.receiptImportId, selected)
       showReceiptResult(result)
       await loadRecent()
     } catch (reason) {

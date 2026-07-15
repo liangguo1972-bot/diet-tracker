@@ -46,6 +46,7 @@ describe('ReceiptImportPage failure recovery', () => {
     expect(await screen.findByText('暂时无法连接识别服务，照片已保留，稍后可重试。')).toBeTruthy()
     expect(screen.queryByText(/Failed to send a request/)).toBeNull()
     await waitFor(() => expect(screen.getAllByText('IMG_4067.png')).toHaveLength(2))
+    expect(receiptAdapter.process).toHaveBeenCalledWith('receipt-1', expect.any(File))
     expect(screen.queryByText('还没有导入记录')).toBeNull()
     expect(receiptAdapter.get).toHaveBeenCalledWith('receipt-1')
   })
