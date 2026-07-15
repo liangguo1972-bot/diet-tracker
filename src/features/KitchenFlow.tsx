@@ -84,5 +84,5 @@ export function KitchenFlow({ onTab, onSessionExpired }: {
   }
   if (screen === 'save' && cookDraft) return <SaveCookPage draft={cookDraft} onDraft={setCookDraft} onBack={() => setScreen('cook')} onSaved={saved} onTab={changeTab} onSessionExpired={onSessionExpired} />
   if (screen === 'cook') return <CookPage draft={cookDraft} loading={cookLoading} error={cookError} onRetry={() => { if (cookTarget) void loadCook(cookTarget) }} onDraft={setCookDraft} onPick={pickInventory} onBack={() => setScreen('home')} onContinue={() => setScreen('save')} onTab={changeTab} />
-  return <KitchenHomePage refreshKey={refreshKey} notice={notice} onInventory={() => setScreen('inventory')} onReceiptImport={() => { setNotice(null); setScreen('receipt-import') }} onCook={(item) => { setNotice(null); void loadCook(item) }} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  return <KitchenHomePage refreshKey={refreshKey} notice={notice} onInventory={() => setScreen('inventory')} onCook={(item) => { setNotice(null); void loadCook(item) }} onTab={changeTab} onSessionExpired={onSessionExpired} />
 }

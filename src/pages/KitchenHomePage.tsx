@@ -6,11 +6,10 @@ import { isAuthenticationRequired } from '../data/errors'
 import type { KitchenHomeData, WeeklyPlanItem } from '../fr002-types'
 import { addDays, amount, localDateKey, prettyDate, startOfWeek, weekday } from '../lib/fr002'
 
-export function KitchenHomePage({ refreshKey, notice, onInventory, onReceiptImport, onCook, onTab, onSessionExpired }: {
+export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onTab, onSessionExpired }: {
   refreshKey: number
   notice: string | null
   onInventory: () => void
-  onReceiptImport: () => void
   onCook: (item: WeeklyPlanItem) => void
   onTab: (tab: MainTab) => void
   onSessionExpired: () => void
@@ -31,12 +30,14 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onReceiptImpo
   }, [onSessionExpired])
 
   useEffect(() => { void load() }, [load, refreshKey])
+  const weekStart = startOfWeek(localDateKey())
+  const monthDay = (date: string) => { const [, month, day] = date.split('-').map(Number); return `${month}月${day}日` }
 
   return (
     <main className="phone page kitchen-page">
       <div className="page-content">
         <header className="kitchen-home-title"><h1>厨房</h1></header>
-        <div className="week-scope kitchen-week"><span>本周</span><b>{prettyDate(startOfWeek(localDateKey()))} - {prettyDate(addDays(startOfWeek(localDateKey()), 6))}</b></div>
+        <div className="week-scope kitchen-week"><span>本周</span><b>{monthDay(weekStart)} - {monthDay(addDays(weekStart, 6))}</b></div>
         {notice && <div className="success-banner" role="status">{notice}</div>}
         {loading && <LoadingState rows={6} />}
         {error && <ErrorState message={error} onRetry={load} />}
@@ -50,7 +51,6 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onReceiptImpo
                 <span>用尽 {data.inventorySummary.depletedLots}</span>
               </button>
               <button className="feature-row" onClick={onInventory}><span><b>查看库存列表</b><small>查看数量、存放位置和到期日</small></span><strong>详情</strong></button>
-              <button className="feature-row" onClick={onReceiptImport}><span><b>添加冰箱库存</b><small>从照片小票识别并确认</small></span><strong>添加</strong></button>
             </section>
 
             <section className="section-card kitchen-overview-card">
