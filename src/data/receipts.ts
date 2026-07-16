@@ -189,7 +189,9 @@ export const receiptAdapter = {
     return parseReceiptImports(data)
   },
   async searchIngredients(query: string): Promise<ReceiptIngredientOption[]> {
-    const { data, error } = await client().rpc('search_receipt_ingredients', { p_query: query })
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) return []
+    const { data, error } = await client().rpc('search_receipt_ingredients', { p_query: normalizedQuery })
     if (error) throw toDataError(error)
     return parseReceiptIngredients(data)
   },
