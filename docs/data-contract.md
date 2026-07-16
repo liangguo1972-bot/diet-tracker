@@ -52,8 +52,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 
 | 表 | 作用 |
 |---|---|
-| `ingredients` | 食材营养和标准份量 |
-| `recipes` | 配方参考模板 |
+| `ingredients` | 食材营养和标准份量。`canonical_name` 是个人基础库的稳定匹配键，展示名称变化时不改变菜谱、别名和重复导入定位 |
+| `recipes` | 配方参考模板。基础菜谱使用内部 `seed_key` 支持安全重复导入 |
 | `recipe_items` | 配方包含的参考食材和克数 |
 | `cook_sessions` | 某次实际做出的成品。`source_type` 区分已有菜谱和无菜谱来源，`recipe_confirmation_status` 保存从本锅生成菜谱的确认状态 |
 | `cook_items` | 该次做饭实际使用的食材和克数 |
@@ -70,7 +70,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 | `operation_requests` | 采购、做饭、无菜谱做饭、从本锅生成菜谱、小票确认与创建菜谱的幂等结果 |
 | `receipt_imports` | 私有照片上传、识别状态、原始文本与确认时间 |
 | `receipt_items` | 小票商品行、匹配建议、人工确认结果与入库库存批次 |
-| `ingredient_aliases` | 当前用户确认过的商品别名到已有食材的映射 |
+| `ingredient_aliases` | 当前用户确认过的商品别名和基础库安全别名到已有食材的映射 |
+| `ingredient_match_rules` | 个人基础小票词典。安全规则可以精确自动匹配；规格敏感和高风险规则只生成待确认建议。前端不能直接读写 |
 | `cook_unmatched_items` | 做饭时使用的未匹配库存。它不携带营养数据。 |
 | `recipe_parse_calls` | 服务端菜谱解析调用次数、状态和 token 用量。前端不能直接读写。 |
 | `body_metrics` | 身体数据留位，当前为空 |
@@ -213,7 +214,7 @@ const { data, error } = await supabase.rpc('search_meal_components', {
 
 状态：**已支持**。
 
-当前 63 个食材中只有 11 个填写了 `serving_grams`。
+正式账号当前共有 87 个食材，其中 57 个填写了 `serving_grams`，可以进入单品选择器。个人基础库导入的 52 个食材都填写了默认份量克重。
 
 调用 `search_meal_components`，把 `p_source_type` 设为 `ingredient`。只有已填写 `serving_grams` 的食材会返回。
 
@@ -533,7 +534,7 @@ type ReceiptDraft = {
     suggestedName: string | null
     suggestionConfidence: number | null
     suggestionReason: string | null
-    suggestionSource: 'name_similarity' | 'openai' | null
+    suggestionSource: 'name_similarity' | 'openai' | 'seed_dictionary' | null
     matchStatus: 'matched' | 'possible_match' | 'unmatched' | 'ignored'
   }>
 }
@@ -823,6 +824,34 @@ await supabase.rpc('get_operation_result', {
 | `AUTH_REQUIRED`、权限错误 | 回登录页，不显示缓存的其他用户数据。 |
 | `NETWORK_UNKNOWN` | 不生成新键。先查询原操作结果，再决定是否使用原键重试。 |
 
+### 8.6 个人账号基础数据种子
+
+状态：**已导入正式账号并完成远端验证。** 这是一批个人使用数据，不是跨用户共享内容。
+
+基础食材来源为 `data/基础食材库.csv`。共导入 52 条，其中首次执行新增 24 条，并把 28 条旧基础食材更新到新标准。每条食材使用 `canonical_name` 保存 CSV 的“标准匹配名”。脚本重复运行时按该字段定位，不依赖可修改的中文展示名。菜谱和小票别名继续引用稳定的食材 UUID。
+
+小票词典来源为 `data/小票匹配词典.csv`。导入结果分为：
+
+1. 40 条安全完整写法。它们进入安全别名和内部匹配规则，精确命中时可以成为 `matched`。
+2. 45 条需确认或高风险完整写法。它们只进入 `ingredient_match_rules`，命中时返回 `possible_match` 和 `suggestionSource: 'seed_dictionary'`，不能自动成为可靠营养匹配。
+3. 蛋白棒和蛋白粉两行没有导入。它们需要品牌营养标签，不能指向一个泛化食材。
+
+`ingredient_match_rules` 只供后端匹配使用。普通登录用户没有直接读取或修改权限。用户确认后的完整商品名仍写入 `ingredient_aliases`，并优先于基础词典。
+
+菜谱来源为 `data/菜谱库.csv`。共导入 35 道菜谱和全部克重条目，其中 33 道按 CSV 默认值加入候选菜池。`番茄炒蛋` 复用了旧基础菜谱记录并刷新份数与食材条目；其余 34 道首次创建。两个默认“不加入候选”的菜谱仍存在于菜谱库，但没有自动加入候选池。
+
+正式账号原有 13 批小票库存占位。本次只转换了 6 批可由安全英文关键词明确确认的项目：鸡蛋、桃子、牛油果、黄瓜、洋葱和蓝莓。库存与对应 `receipt_items` 同步关联到已有食材，并保存完整小票名称供下次复用。
+
+剩余 7 批继续保持未匹配。水没有对应基础食材；希腊酸奶、2% 牛奶、猪肉、玉米和混合生菜涉及规格或品种确认；香菇小票名称存在缩写，未在没有明确规则时自动转换。
+
+一次性导入脚本：
+
+```text
+scripts/import-personal-seed.mjs
+```
+
+脚本默认执行 `dry-run`。只有显式传入 `--apply` 才会写远端。密码通过临时环境变量传入，不进入仓库或文档。导入后重新运行预检时，新建食材、新建菜谱和库存转换均为 0，说明稳定键和已有转换可以阻止重复新增。
+
 ## 9. 新需求处理规则
 
 当 Figma 出现本文没有的数据时：
@@ -835,7 +864,7 @@ await supabase.rpc('get_operation_result', {
 
 ## 10. 当前后端待办顺序
 
-1. 补齐第一版可选单品的 `serving_grams`。
+1. 补齐第一版可选单品的 `serving_grams`。**个人基础库第一批已完成，正式账号当前有 57 个可选单品。**
 2. 将 Excel v8 新增食材、配方和真实饮食数据转换为当前四层模型。
 3. 前端真实 Supabase 联调 `get_today`、`search_meal_components`、`save_meal` 和 `update_meal`。**已完成。**
 4. FR-002 厨房与采购真实数据闭环。**后端和前端已完成，等待产品验收。**

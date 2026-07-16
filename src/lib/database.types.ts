@@ -231,6 +231,7 @@ export type Database = {
           id: string
           ingredient_id: string
           normalized_alias: string
+          source: string
           updated_at: string
           user_id: string
         }
@@ -240,6 +241,7 @@ export type Database = {
           id?: string
           ingredient_id: string
           normalized_alias: string
+          source?: string
           updated_at?: string
           user_id: string
         }
@@ -249,6 +251,7 @@ export type Database = {
           id?: string
           ingredient_id?: string
           normalized_alias?: string
+          source?: string
           updated_at?: string
           user_id?: string
         }
@@ -262,50 +265,118 @@ export type Database = {
           },
         ]
       }
+      ingredient_match_rules: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          ignored_terms: string[]
+          ingredient_id: string
+          keywords: string[]
+          match_risk: string
+          normalized_alias: string
+          reason: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          ignored_terms?: string[]
+          ingredient_id: string
+          keywords?: string[]
+          match_risk: string
+          normalized_alias: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          ignored_terms?: string[]
+          ingredient_id?: string
+          keywords?: string[]
+          match_risk?: string
+          normalized_alias?: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_match_rules_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
+          canonical_name: string
           carb_per_100g: number | null
           category: string | null
+          common_name_en: string | null
           fat_per_100g: number | null
           id: string
+          is_spec_sensitive: boolean
           is_verified: boolean | null
           kcal_per_100g: number | null
           name: string
           note: string | null
+          nutrition_source: string | null
           package_spec: string | null
           protein_per_100g: number | null
+          seed_source: string | null
           serving_grams: number | null
           shelf_stable: string | null
           storage: string | null
           user_id: string
         }
         Insert: {
+          canonical_name: string
           carb_per_100g?: number | null
           category?: string | null
+          common_name_en?: string | null
           fat_per_100g?: number | null
           id?: string
+          is_spec_sensitive?: boolean
           is_verified?: boolean | null
           kcal_per_100g?: number | null
           name: string
           note?: string | null
+          nutrition_source?: string | null
           package_spec?: string | null
           protein_per_100g?: number | null
+          seed_source?: string | null
           serving_grams?: number | null
           shelf_stable?: string | null
           storage?: string | null
           user_id?: string
         }
         Update: {
+          canonical_name?: string
           carb_per_100g?: number | null
           category?: string | null
+          common_name_en?: string | null
           fat_per_100g?: number | null
           id?: string
+          is_spec_sensitive?: boolean
           is_verified?: boolean | null
           kcal_per_100g?: number | null
           name?: string
           note?: string | null
+          nutrition_source?: string | null
           package_spec?: string | null
           protein_per_100g?: number | null
+          seed_source?: string | null
           serving_grams?: number | null
           shelf_stable?: string | null
           storage?: string | null
@@ -1013,6 +1084,8 @@ export type Database = {
           name: string
           note: string | null
           role: string | null
+          seed_key: string | null
+          seed_source: string | null
           servings: number
           user_id: string
         }
@@ -1021,6 +1094,8 @@ export type Database = {
           name: string
           note?: string | null
           role?: string | null
+          seed_key?: string | null
+          seed_source?: string | null
           servings?: number
           user_id?: string
         }
@@ -1029,6 +1104,8 @@ export type Database = {
           name?: string
           note?: string | null
           role?: string | null
+          seed_key?: string | null
+          seed_source?: string | null
           servings?: number
           user_id?: string
         }

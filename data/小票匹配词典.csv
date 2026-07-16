@@ -1,0 +1,50 @@
+小票关键词,可能出现的完整商品写法,建议匹配到的中文食材,可忽略词,匹配风险,原因说明
+egg / eggs,GRD A EGGS LARGE / EGGS LG DZ / LARGE EGG,鸡蛋,grade A、large、dozen、品牌,安全,单一食材写法多但指向明确
+banana / bananas,ORGANIC BANANA / BANANAS,香蕉,organic、lb,安全,单一食材
+blueberry / blueberries,DRISCOLLS BLUEBERRY / BLUEBERRIES PINT,蓝莓,品牌、pint、oz,安全,单一食材
+shiitake mushroom,SHIITAKE MUSHROOM,香菇,fresh,安全,明确指向香菇
+mushroom / baby bella,WHITE MUSHROOM / BABY BELLA / CREMINI,蘑菇,white、sliced,需确认,品种不同(白蘑菇/口蘑/褐菇)需确认是否香菇
+spring mix / spring greens,ORGANIC SPRING MIX,生菜,organic、5oz,需确认,混合菜非单一食材建议归为生菜或混合蔬菜
+greek yogurt,FAGE GREEK YOGURT / CHOBANI GREEK,希腊酸奶,品牌、oz,需确认,脱脂/全脂/加糖差异大规格敏感
+low fat milk / 2% / 1%,2% REDUCED FAT MILK / 1% MILK,低脂牛奶,gallon、品牌,需确认,需确认1%还是2%
+milk / whole milk,WHOLE MILK GAL / VIT D MILK,全脂牛奶,gallon、品牌,需确认,全脂/脱脂/植物奶差异大规格敏感
+chicken breast,BNLS SKLS CHKN BRST,鸡胸肉,bnls、skls、fresh,安全,明确指向
+steak / ribeye / sirloin,RIBEYE STEAK / SIRLOIN STEAK / NY STRIP,牛排,品牌、部位色、lb,需确认,部位/肥瘦差异大(西冷/眼肉/菲力)规格敏感
+salmon,ATL SALMON FILLET / SMOKED SALMON,三文鱼,fillet、atl,需确认,养殖/野生/熏制差别大
+shrimp,RAW SHRIMP 16/20 / COOKED SHRIMP,虾,count size(16/20)、品牌,需确认,生/熟不同
+tuna,TUNA CHUNK LIGHT WATER / TUNA IN OIL,金枪鱼,品牌、chunk,高风险,水浸/油浸热量差别大规格敏感;油浸需另建条目
+tofu,HOUSE FIRM TOFU / SILKEN TOFU,豆腐,品牌、fresh,需确认,嫩/老豆腐差异
+ground beef / grnd beef,GRND BEEF 85/15 / 90/10,牛肉,品牌、lb,需确认,肥瘦比(85/15等)热量差别大规格敏感
+pork,PORK LOIN / PORK BELLY,猪肉,fresh、lb,需确认,部位差异大(里脊/五花)
+pork feet / pig trotter,PORK FEET / PIG FEET,猪蹄,fresh、lb,安全,明确指向猪蹄
+spinach / baby spinach,ORGANIC BABY SPINACH,菠菜,baby、organic、5oz,安全,单一食材
+kale,ORGANIC KALE / LACINATO KALE,羽衣甘蓝,organic、品种名,安全,单一食材
+lettuce / romaine,ROMAINE HEARTS / ICEBERG LETTUCE,生菜,hearts、品牌,安全,单一食材
+tomato / tomatoes,ROMA TOMATO / VINE TOMATO,番茄,roma、vine、lb,安全,单一食材
+cherry tomato / grape tomato,CHERRY TOMATOES / GRAPE TOMATOES,小番茄,pint、品牌,安全,单一食材
+cucumber,ENGLISH CUCUMBER,黄瓜,english、each,安全,单一食材
+broccoli,BROCCOLI CROWNS,西兰花,crowns、lb,安全,单一食材
+carrot / carrots,BABY CARROTS / CARROTS,胡萝卜,baby、品牌、lb,安全,单一食材
+onion,YELLOW ONION / RED ONION,洋葱,品种名、lb,安全,单一食材
+bell pepper / red pepper,RED BELL PEPPER / GREEN PEPPER,彩椒,bell、品种色、each,安全,单一食材(青椒热量略低)
+zucchini,GREEN ZUCCHINI,西葫芦,green、lb,安全,单一食材
+eggplant,ITALIAN EGGPLANT,茄子,italian、each,安全,单一食材
+cabbage,GREEN CABBAGE / NAPA CABBAGE,卷心菜,green、品种名,需确认,普通卷心菜与大白菜(napa)不同
+avocado,HASS AVOCADO,牛油果,hass、each,安全,单一食材
+apple,GALA APPLE / HONEYCRISP,苹果,品种名(gala/honeycrisp)、lb,安全,单一食材
+peach,YELLOW PEACH,桃子,yellow、lb,安全,单一食材
+almonds,RAW ALMONDS / ROASTED ALMONDS,杏仁,品牌、raw、roasted,需确认,生/烤/盐焗差异
+oats / oatmeal,QUAKER OLD FASHIONED OATS,燕麦片,品牌、old fashioned,需确认,即食/钢切/含糖燕麦片区分
+noodles,UDON NOODLES / WHEAT NOODLES / RAMEN,面条,品牌、type,需确认,挂面/乌冬/拉面/含油泡面差异大
+bread,WHT BREAD / WHOLE WHEAT BREAD,面包,品牌、loaf,需确认,白/全麦差异规格敏感
+potato / potatoes,RUSSET POTATO / BABY POTATO,土豆,russet、baby、品牌、lb,安全,单一食材(小土豆亦归此)
+sweet potato / yam,SWEET POTATO / YAM,红薯,品牌、lb,安全,单一食材
+quinoa,ORGANIC QUINOA,藜麦,organic、品牌,安全,单一食材
+brown rice,BROWN RICE LONG GRAIN,糙米,long grain、品牌,安全,单一食材
+corn,SWEET CORN / CANNED CORN,甜玉米,sweet、ear,需确认,鲜/罐头/冷冻区分
+cheese / cheddar,SHREDDED CHEDDAR / KRAFT CHEESE,奶酪,品牌、shredded,需确认,品种差别大规格敏感
+burrata / mozzarella,BURRATA CHEESE / FRESH MOZZARELLA,布拉塔,品牌、oz,需确认,牛奶制品;品牌/含奶油量差异规格敏感
+protein bar,QUEST PROTEIN BAR / RXBAR,蛋白棒,品牌,高风险,待补营养食材;品牌差异极大不可合并规格敏感
+protein powder / whey,WHEY PROTEIN / OPTIMUM NUTRITION,蛋白粉,品牌、flavor,高风险,待补营养食材;品牌差异极大不可合并规格敏感
+peanut butter,JIF PEANUT BUTTER / NATURAL PB,花生酱,品牌,需确认,含糖/无糖差异高热量规格敏感
+yogurt,PLAIN YOGURT / VANILLA YOGURT,酸奶,品牌、flavor,需确认,加糖/无糖差异大规格敏感
