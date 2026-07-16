@@ -7,6 +7,11 @@ export type Fr002ErrorCode =
   | 'INSUFFICIENT_STOCK'
   | 'CONFLICT'
   | 'IDEMPOTENCY_CONFLICT'
+  | 'COOK_NAME_REQUIRED'
+  | 'COOK_ITEMS_INVALID'
+  | 'GRAMS_REQUIRED'
+  | 'RECIPE_NAME_REQUIRED'
+  | 'DUPLICATE_RECIPE_NAME'
   | 'NETWORK_UNKNOWN'
   | 'RECEIPT_FILE_INVALID'
   | 'OCR_NOT_CONFIGURED'
@@ -29,6 +34,11 @@ const fr002Messages: Record<Fr002ErrorCode, string> = {
   INSUFFICIENT_STOCK: '库存不足，整次保存没有生效。请调整用量后重试。',
   CONFLICT: '数据状态已经变化，请重新加载后决定是否继续。',
   IDEMPOTENCY_CONFLICT: '同一次操作的内容已经变化，请先确认原操作结果。',
+  COOK_NAME_REQUIRED: '请填写成品名称。',
+  COOK_ITEMS_INVALID: '请至少选择一种已匹配食材，并检查使用量。',
+  GRAMS_REQUIRED: '已匹配食材需要填写大于 0 的主要食材克重。',
+  RECIPE_NAME_REQUIRED: '请填写不超过 120 个字的菜谱名称。',
+  DUPLICATE_RECIPE_NAME: '已有同名菜谱，请修改名称后重试。',
   NETWORK_UNKNOWN: '网络中断，服务端结果暂时未知。草稿和本次操作编号已保留。',
   RECEIPT_FILE_INVALID: '照片格式或大小不符合要求。请选择 10MB 以内的 JPEG、PNG 或 WebP。',
   OCR_NOT_CONFIGURED: '照片已安全保存，但识别服务尚未配置。可以稍后使用同一条记录重试。',
@@ -77,7 +87,7 @@ export function toDataError(error: SupabaseLikeError): Error {
   if (error.code === '28000' || /AUTH_REQUIRED|FORBIDDEN|authentication required|jwt|not authenticated|permission denied for function/i.test(error.message)) {
     return new AuthenticationRequiredError()
   }
-  const code = (['INVALID_REFERENCE', 'QUANTITY_INVALID', 'UNIT_CONFLICT', 'INSUFFICIENT_STOCK', 'CONFLICT', 'IDEMPOTENCY_CONFLICT', 'RECEIPT_FILE_INVALID', 'OCR_NOT_CONFIGURED', 'OCR_UNAVAILABLE', 'OCR_RESPONSE_INVALID', 'RECEIPT_FILE_UNAVAILABLE', 'RECEIPT_RECOGNITION_INVALID', 'STATUS_CONFLICT', 'RECEIPT_ITEMS_INVALID', 'RECEIPT_ITEMS_INCOMPLETE', 'RECEIPT_ITEM_NAME_REQUIRED', 'RECEIPT_ITEM_QUANTITY_INVALID', 'RECEIPT_ITEM_UNIT_INVALID', 'RECEIPT_ITEM_STORAGE_INVALID'] as const)
+  const code = (['INVALID_REFERENCE', 'QUANTITY_INVALID', 'UNIT_CONFLICT', 'INSUFFICIENT_STOCK', 'CONFLICT', 'IDEMPOTENCY_CONFLICT', 'COOK_NAME_REQUIRED', 'COOK_ITEMS_INVALID', 'GRAMS_REQUIRED', 'RECIPE_NAME_REQUIRED', 'DUPLICATE_RECIPE_NAME', 'RECEIPT_FILE_INVALID', 'OCR_NOT_CONFIGURED', 'OCR_UNAVAILABLE', 'OCR_RESPONSE_INVALID', 'RECEIPT_FILE_UNAVAILABLE', 'RECEIPT_RECOGNITION_INVALID', 'STATUS_CONFLICT', 'RECEIPT_ITEMS_INVALID', 'RECEIPT_ITEMS_INCOMPLETE', 'RECEIPT_ITEM_NAME_REQUIRED', 'RECEIPT_ITEM_QUANTITY_INVALID', 'RECEIPT_ITEM_UNIT_INVALID', 'RECEIPT_ITEM_STORAGE_INVALID'] as const)
     .find((candidate) => error.message.includes(candidate))
   if (code) {
     let details: { receiptItemId?: string; field?: string } | null = null

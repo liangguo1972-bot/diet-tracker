@@ -5,7 +5,9 @@ export type PlanStatus = 'draft' | 'confirmed'
 export type PlanSource = 'manual' | 'candidate_draw'
 export type InventoryStatus = 'active' | 'depleted'
 export type CookAvailabilityStatus = 'ready' | 'partial' | 'missing' | 'unit_confirmation_required'
-export type OperationType = 'complete_purchase' | 'save_cook_session' | 'confirm_receipt_import'
+export type OperationType = 'complete_purchase' | 'save_cook_session' | 'confirm_receipt_import' | 'save_cook_without_recipe' | 'create_recipe_from_cook_session'
+export type CookSourceType = 'recipe' | 'without_recipe'
+export type RecipeConfirmationStatus = 'not_required' | 'pending' | 'confirmed'
 
 export type WeeklyPlanItem = {
   id: string
@@ -41,6 +43,9 @@ export type KitchenHomeData = {
     name: string
     cookedOn: string
     availableServings: number
+    recipeId: string | null
+    sourceType: CookSourceType
+    recipeConfirmationStatus: RecipeConfirmationStatus
   }>
 }
 
@@ -180,6 +185,59 @@ export type SavedCookSession = {
   cookedOn: string
   totalServings: number
   nutrition: Nutrition & { estimated: boolean }
+}
+
+export type AdHocCookItemDraft = CookInventoryOption & {
+  quantityUsed: number | null
+  grams: number | null
+  note: string
+}
+
+export type AdHocCookDraft = {
+  name: string
+  cookedOn: string
+  totalServings: number
+  note: string
+  items: AdHocCookItemDraft[]
+}
+
+export type SaveCookWithoutRecipeInput = {
+  name: string
+  cookedOn: string
+  totalServings: number
+  note: string
+  items: Array<{ inventoryId: string; ingredientId: string; quantityUsed: number; unit: string; grams: number; note: string }>
+  unmatchedItems: Array<{ inventoryId: string; quantityUsed: number; unit: string; note: string }>
+}
+
+export type SavedCookWithoutRecipe = SavedCookSession & {
+  sourceType: 'without_recipe'
+  recipeConfirmationStatus: 'pending'
+}
+
+export type CookRecipeConfirmation = {
+  cookSessionId: string
+  sourceType: CookSourceType
+  recipeConfirmationStatus: RecipeConfirmationStatus
+  name: string
+  cookedOn: string
+  totalServings: number
+  recipeId: string | null
+  recipeName: string | null
+  candidateId: string | null
+  items: Array<{ ingredientId: string; ingredientName: string; grams: number; isVerified: boolean }>
+  unmatchedItems: Array<{ inventoryId: string; name: string; quantityUsed: number; unit: string }>
+}
+
+export type CreatedRecipeFromCook = {
+  cookSessionId: string
+  recipeId: string
+  candidateId: string
+  name: string
+  servings: number
+  itemCount: number
+  candidateStatus: 'candidate'
+  recipeConfirmationStatus: 'confirmed'
 }
 
 export type OperationResult<T> = { status: string; response: T }

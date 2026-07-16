@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCookPreparation, parseInventory, parseKitchenHome, parseSavedCook, parseShoppingList, parseWeeklyPlan } from './fr002'
+import { parseCookPreparation, parseCookRecipeConfirmation, parseCreatedRecipeFromCook, parseInventory, parseKitchenHome, parseSavedCook, parseSavedCookWithoutRecipe, parseShoppingList, parseWeeklyPlan } from './fr002'
 
 describe('FR-002 response parsing', () => {
   it('keeps real empty kitchen states', () => {
@@ -57,5 +57,28 @@ describe('FR-002 response parsing', () => {
     })
     expect(result.totalServings).toBe(1.5)
     expect(result.nutrition.estimated).toBe(true)
+  })
+
+  it('parses FR-004 pending sessions and recovery payloads', () => {
+    const home = parseKitchenHome({
+      date: '2026-07-16', inventorySummary: { activeLots: 1, depletedLots: 0, expiringLots: 0 }, weeklyPlan: null,
+      readyCookSessions: [{ id: 'cook-1', name: '随手一锅', cookedOn: '2026-07-16', availableServings: 2, recipeId: null, sourceType: 'without_recipe', recipeConfirmationStatus: 'pending' }],
+    })
+    expect(home.readyCookSessions[0].recipeConfirmationStatus).toBe('pending')
+    const confirmation = parseCookRecipeConfirmation({
+      cookSessionId: 'cook-1', sourceType: 'without_recipe', recipeConfirmationStatus: 'pending', name: '随手一锅', cookedOn: '2026-07-16', totalServings: 2,
+      recipeId: null, recipeName: null, candidateId: null,
+      items: [{ ingredientId: 'i-1', ingredientName: '番茄', grams: 180, isVerified: true }],
+      unmatchedItems: [{ inventoryId: 'lot-2', name: '神秘香料', quantityUsed: 0.5, unit: '包' }],
+    })
+    expect(confirmation.items[0].grams).toBe(180)
+    expect(confirmation.unmatchedItems[0].name).toBe('神秘香料')
+  })
+
+  it('parses both FR-004 write results', () => {
+    const saved = parseSavedCookWithoutRecipe({ cookSessionId: 'cook-1', name: '随手一锅', cookedOn: '2026-07-16', totalServings: 2, sourceType: 'without_recipe', recipeConfirmationStatus: 'pending', nutrition: { kcal: 300, protein: 20, carb: 30, fat: 10, estimated: false } })
+    expect(saved.recipeConfirmationStatus).toBe('pending')
+    const recipe = parseCreatedRecipeFromCook({ cookSessionId: 'cook-1', recipeId: 'r-1', candidateId: 'c-1', name: '番茄鸡蛋', servings: 2, itemCount: 2, candidateStatus: 'candidate', recipeConfirmationStatus: 'confirmed' })
+    expect(recipe.candidateStatus).toBe('candidate')
   })
 })

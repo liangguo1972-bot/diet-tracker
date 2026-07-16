@@ -6,11 +6,13 @@ import { isAuthenticationRequired } from '../data/errors'
 import type { KitchenHomeData, WeeklyPlanItem } from '../fr002-types'
 import { addDays, amount, localDateKey, prettyDate, startOfWeek, weekday } from '../lib/fr002'
 
-export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onTab, onSessionExpired }: {
+export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onAdHocCook, onResumeConfirmation, onTab, onSessionExpired }: {
   refreshKey: number
   notice: string | null
   onInventory: () => void
   onCook: (item: WeeklyPlanItem) => void
+  onAdHocCook: () => void
+  onResumeConfirmation: (cookSessionId: string) => void
   onTab: (tab: MainTab) => void
   onSessionExpired: () => void
 }) {
@@ -55,6 +57,7 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onTab
 
             <section className="section-card kitchen-overview-card">
               <div className="section-heading"><span>本周食谱</span><small>点菜开始做</small></div>
+              <button className="feature-row adhoc-entry" onClick={onAdHocCook}><span><b>无菜谱做饭</b><small>从冰箱选食材，随手做一锅</small></span><strong>开始</strong></button>
               {!data.weeklyPlan || data.weeklyPlan.items.length === 0 ? (
                 <EmptyState title="本周还没有食谱" detail="先去采购区抽取并确认本周食谱。" action={<button className="primary-button compact" onClick={() => onTab('采购')}>去规划食谱</button>} />
               ) : (
@@ -78,7 +81,7 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onTab
                   {data.readyCookSessions.map((item) => (
                     <div className="feature-row static" key={item.id}>
                       <span><b>{item.name}</b><small>{prettyDate(item.cookedOn)} 做好 · 剩余 {amount(item.availableServings)} 份</small></span>
-                      <span className="status-chip success">可记餐</span>
+                      {item.recipeConfirmationStatus === 'pending' ? <button className="text-button" onClick={() => onResumeConfirmation(item.id)}>继续确认菜谱</button> : <span className="status-chip success">可记餐</span>}
                     </div>
                   ))}
                 </div>

@@ -2,6 +2,9 @@ import type { Json } from '../lib/database.types'
 import { supabase, supabaseConfigError } from '../lib/supabase'
 import type {
   CandidateStatus,
+  CookRecipeConfirmation,
+  CookSourceType,
+  CreatedRecipeFromCook,
   CompletePurchaseItemInput,
   CookAvailabilityStatus,
   CookInventoryOption,
@@ -16,7 +19,9 @@ import type {
   PlanStatus,
   RecipeCandidate,
   SaveCookInput,
+  SaveCookWithoutRecipeInput,
   SavedCookSession,
+  SavedCookWithoutRecipe,
   ShoppingListData,
   ShoppingListItem,
   WeeklyPlan,
@@ -48,6 +53,8 @@ const planStatuses: PlanStatus[] = ['draft', 'confirmed']
 const planSources: PlanSource[] = ['manual', 'candidate_draw']
 const inventoryStatuses: InventoryStatus[] = ['active', 'depleted']
 const availabilityStatuses: CookAvailabilityStatus[] = ['ready', 'partial', 'missing', 'unit_confirmation_required']
+const cookSourceTypes: CookSourceType[] = ['recipe', 'without_recipe']
+const confirmationStatuses = ['not_required', 'pending', 'confirmed'] as const
 
 const enumValue = <T extends string>(value: Json | undefined, options: T[], fallback: T): T => {
   const parsed = string(value) as T
@@ -92,6 +99,9 @@ export function parseKitchenHome(value: Json): KitchenHomeData {
         name: string(item.name) || '未命名成品',
         cookedOn: string(item.cookedOn),
         availableServings: number(item.availableServings),
+        recipeId: nullableString(item.recipeId),
+        sourceType: enumValue(item.sourceType, cookSourceTypes, 'recipe'),
+        recipeConfirmationStatus: enumValue(item.recipeConfirmationStatus, [...confirmationStatuses], 'not_required'),
       }
     }),
   }
@@ -235,6 +245,40 @@ export function parseSavedCook(value: Json): SavedCookSession {
   }
 }
 
+export function parseSavedCookWithoutRecipe(value: Json): SavedCookWithoutRecipe {
+  const data = record(value, '无菜谱成品保存结果')
+  return {
+    ...parseSavedCook(value),
+    sourceType: enumValue(data.sourceType, cookSourceTypes, 'without_recipe') as 'without_recipe',
+    recipeConfirmationStatus: enumValue(data.recipeConfirmationStatus, [...confirmationStatuses], 'pending') as 'pending',
+  }
+}
+
+export function parseCookRecipeConfirmation(value: Json): CookRecipeConfirmation {
+  const data = record(value, '菜谱确认数据')
+  return {
+    cookSessionId: string(data.cookSessionId),
+    sourceType: enumValue(data.sourceType, cookSourceTypes, 'without_recipe'),
+    recipeConfirmationStatus: enumValue(data.recipeConfirmationStatus, [...confirmationStatuses], 'pending'),
+    name: string(data.name) || '未命名成品',
+    cookedOn: string(data.cookedOn),
+    totalServings: number(data.totalServings),
+    recipeId: nullableString(data.recipeId),
+    recipeName: nullableString(data.recipeName),
+    candidateId: nullableString(data.candidateId),
+    items: array(data.items).map((entry) => { const item = record(entry); return { ingredientId: string(item.ingredientId), ingredientName: string(item.ingredientName), grams: number(item.grams), isVerified: boolean(item.isVerified) } }),
+    unmatchedItems: array(data.unmatchedItems).map((entry) => { const item = record(entry); return { inventoryId: string(item.inventoryId), name: string(item.name), quantityUsed: number(item.quantityUsed), unit: string(item.unit) } }),
+  }
+}
+
+export function parseCreatedRecipeFromCook(value: Json): CreatedRecipeFromCook {
+  const data = record(value, '菜谱创建结果')
+  return {
+    cookSessionId: string(data.cookSessionId), recipeId: string(data.recipeId), candidateId: string(data.candidateId),
+    name: string(data.name), servings: number(data.servings), itemCount: number(data.itemCount), candidateStatus: 'candidate', recipeConfirmationStatus: 'confirmed',
+  }
+}
+
 const requireClient = () => {
   if (!supabase) throw new Error(supabaseConfigError ?? 'Supabase 未配置')
   return supabase
@@ -351,6 +395,28 @@ export const fr002Adapter = {
     } catch (reason) {
       throw toOperationError(reason)
     }
+  },
+  async saveCookWithoutRecipe(input: SaveCookWithoutRecipeInput, idempotencyKey: string): Promise<SavedCookWithoutRecipe> {
+    try {
+      const { data, error } = await requireClient().rpc('save_cook_session_without_recipe', {
+        p_name: input.name, p_cooked_on: input.cookedOn, p_total_servings: input.totalServings, p_note: input.note,
+        p_items: input.items as unknown as Json, p_unmatched_items: input.unmatchedItems as unknown as Json, p_idempotency_key: idempotencyKey,
+      })
+      if (error) throw toOperationError(error)
+      return parseSavedCookWithoutRecipe(data)
+    } catch (reason) { throw toOperationError(reason) }
+  },
+  async getCookRecipeConfirmation(cookSessionId: string): Promise<CookRecipeConfirmation> {
+    const { data, error } = await requireClient().rpc('get_cook_recipe_confirmation', { p_cook_session_id: cookSessionId })
+    if (error) throw toDataError(error)
+    return parseCookRecipeConfirmation(data)
+  },
+  async createRecipeFromCookSession(cookSessionId: string, name: string, idempotencyKey: string): Promise<CreatedRecipeFromCook> {
+    try {
+      const { data, error } = await requireClient().rpc('create_recipe_from_cook_session', { p_cook_session_id: cookSessionId, p_name: name.trim(), p_idempotency_key: idempotencyKey })
+      if (error) throw toOperationError(error)
+      return parseCreatedRecipeFromCook(data)
+    } catch (reason) { throw toOperationError(reason) }
   },
   async getOperationResult<T>(operationType: OperationType, idempotencyKey: string, parse: (value: Json) => T): Promise<OperationResult<T> | null> {
     const { data, error } = await requireClient().rpc('get_operation_result', {

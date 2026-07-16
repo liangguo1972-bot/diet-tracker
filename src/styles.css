@@ -113,6 +113,17 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .kitchen-week span { display: grid; height: 40px; place-items: center; padding: 0; border-radius: 14px; font-size: 16px; }
 .kitchen-week b { padding-left: 22px; font-size: 17px; }
 .kitchen-overview-card { padding-top: 16px; padding-bottom: 6px; }
+.adhoc-entry { margin: 8px 0 6px; border-radius: 12px; color: #fff; background: var(--ink); }
+.adhoc-entry small, .adhoc-entry strong { color: rgba(255,255,255,.72); }
+.adhoc-selected { display: flex; flex-direction: column; gap: 3px; padding: 13px 15px; border-radius: 12px; background: #fffdf6; }
+.adhoc-selected span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.selected-row { box-shadow: inset 0 0 0 2px var(--ink); }
+.adhoc-ingredient-card { display: flex; flex-direction: column; gap: 12px; }
+.adhoc-ingredient-card > label { display: grid; grid-template-columns: minmax(0,1fr) 100px auto; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.adhoc-ingredient-card input { min-width: 0; padding: 10px; text-align: right; }
+.muted-row { opacity: .72; }
+.adhoc-page input:focus, .adhoc-page textarea:focus { scroll-margin-bottom: 220px; }
+.adhoc-page .page-content.with-action { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
 .inventory-chips { display: flex; gap: 8px; border: 0; padding: 0 0 8px; background: transparent; cursor: pointer; }
 .inventory-chips span { padding: 7px 12px; border-radius: 99px; background: #eee9e0; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .inventory-chips .urgent { color: #8a3324; background: #f9d8c9; }
