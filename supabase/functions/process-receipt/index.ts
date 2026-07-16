@@ -1,6 +1,29 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 type RecognitionItem = { name?: unknown; line?: unknown; quantity?: unknown; unit?: unknown; price?: unknown };
+type IngredientCandidate = {
+  id: string;
+  candidateKey: string;
+  name: string;
+  category: string | null;
+  packageSpec: string | null;
+};
+type MatchSuggestion = {
+  position: number;
+  normalizedName: string;
+  suggestedCandidateKey: string | null;
+  suggestedIngredientName: string | null;
+  confidence: "high" | "medium" | "low" | "none";
+  reason: string;
+  specificationSensitive: boolean;
+};
+type OpenAIResponse = {
+  output?: Array<{
+    type?: string;
+    content?: Array<{ type?: string; text?: string }>;
+  }>;
+  usage?: { input_tokens?: number; output_tokens?: number };
+};
 type AzureField = {
   content?: unknown;
   valueString?: unknown;
@@ -21,6 +44,57 @@ const AZURE_API_VERSION = "2024-11-30";
 const AZURE_MAX_SOURCE_BYTES = 4 * 1024 * 1024;
 const OCR_POLL_ATTEMPTS = 30;
 const OCR_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const DEFAULT_MATCH_MODEL = "gpt-5-mini";
+const MATCH_PROVIDER = "openai";
+const MAX_INGREDIENT_CANDIDATES = 200;
+const MAX_MATCH_OUTPUT_TOKENS = 2500;
+
+const matchSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    suggestions: {
+      type: "array",
+      maxItems: 100,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          position: { type: "integer", minimum: 0 },
+          normalizedName: { type: "string" },
+          suggestedCandidateKey: { type: ["string", "null"] },
+          suggestedIngredientName: { type: ["string", "null"] },
+          confidence: { type: "string", enum: ["high", "medium", "low", "none"] },
+          reason: { type: "string" },
+          specificationSensitive: { type: "boolean" },
+        },
+        required: [
+          "position",
+          "normalizedName",
+          "suggestedCandidateKey",
+          "suggestedIngredientName",
+          "confidence",
+          "reason",
+          "specificationSensitive",
+        ],
+      },
+    },
+  },
+  required: ["suggestions"],
+};
+
+const matchInstructions = `You suggest mappings from grocery receipt product names to a user's existing ingredient catalog.
+
+Return exactly one suggestion for every receipt item position. Use only candidateKey values supplied in the catalog. Never invent an ingredient ID or candidate key.
+
+Rules:
+1. Translate and normalize abbreviations when useful. For example, branded or abbreviated banana product names can suggest the existing ingredient 香蕉.
+2. A suggestion is review-only. Do not describe it as confirmed.
+3. Product specifications matter for nutrition. Yogurt and milk variants such as plain, unsweetened, Greek, low-fat, skim, whole, fortified, or high-calcium are specification-sensitive. Set specificationSensitive to true. If the catalog does not contain a sufficiently specific ingredient, use null or low confidence instead of mapping to a generic nutrition item.
+4. Preserve meaningful product type, fat level, sugar status, preparation, and fortification details in normalizedName.
+5. If there is no useful catalog candidate, suggestedCandidateKey must be null. suggestedIngredientName may contain a concise Chinese search suggestion for manual review.
+6. Keep reason short and explain the evidence or uncertainty. Do not infer quantity, unit, nutrition, or inventory data.`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +130,200 @@ const fromBase64 = (value: string) => {
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
   return bytes;
+};
+
+const sha256 = async (value: string) => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const outputText = (response: OpenAIResponse) => {
+  for (const output of response.output ?? []) {
+    if (output.type !== "message") continue;
+    for (const content of output.content ?? []) {
+      if (content.type === "output_text" && typeof content.text === "string") return content.text;
+    }
+  }
+  return null;
+};
+
+const confidenceNumber = (confidence: MatchSuggestion["confidence"]) => {
+  if (confidence === "high") return 0.85;
+  if (confidence === "medium") return 0.65;
+  if (confidence === "low") return 0.4;
+  return null;
+};
+
+const normalizeSuggestions = (value: unknown, itemCount: number): MatchSuggestion[] | null => {
+  if (!value || typeof value !== "object") return null;
+  const suggestions = (value as { suggestions?: unknown }).suggestions;
+  if (!Array.isArray(suggestions) || suggestions.length !== itemCount) return null;
+  const positions = new Set<number>();
+  const normalized: MatchSuggestion[] = [];
+  for (const value of suggestions) {
+    if (!value || typeof value !== "object") return null;
+    const item = value as Partial<MatchSuggestion>;
+    if (!Number.isInteger(item.position) || (item.position as number) < 0 || (item.position as number) >= itemCount
+      || positions.has(item.position as number)
+      || typeof item.normalizedName !== "string"
+      || (item.suggestedCandidateKey !== null && typeof item.suggestedCandidateKey !== "string")
+      || (item.suggestedIngredientName !== null && typeof item.suggestedIngredientName !== "string")
+      || !["high", "medium", "low", "none"].includes(item.confidence ?? "")
+      || typeof item.reason !== "string"
+      || typeof item.specificationSensitive !== "boolean") return null;
+    positions.add(item.position as number);
+    normalized.push(item as MatchSuggestion);
+  }
+  return normalized.sort((left, right) => left.position - right.position);
+};
+
+const enrichWithAiSuggestions = async (
+  userClient: ReturnType<typeof createClient>,
+  service: ReturnType<typeof createClient>,
+  userId: string,
+  receiptImportId: string,
+  items: Array<Record<string, unknown>>,
+) => {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) return { items, status: "not_configured", provider: null as string | null };
+
+  const { data: ingredientRows, error: ingredientError } = await userClient.from("ingredients")
+    .select("id,name,category,package_spec")
+    .order("name")
+    .limit(MAX_INGREDIENT_CANDIDATES);
+  if (ingredientError) return { items, status: "unavailable", provider: MATCH_PROVIDER };
+  if (!ingredientRows?.length) return { items, status: "not_requested", provider: null as string | null };
+
+  const candidates: IngredientCandidate[] = ingredientRows.map((ingredient, index) => ({
+    id: ingredient.id,
+    candidateKey: `c${index}`,
+    name: ingredient.name,
+    category: ingredient.category,
+    packageSpec: ingredient.package_spec,
+  }));
+  const model = Deno.env.get("RECEIPT_MATCH_MODEL")?.trim() || DEFAULT_MATCH_MODEL;
+  const providerInput = {
+    receiptItems: items.map((item, position) => ({ position, rawName: item.name })),
+    ingredientCatalog: candidates.map(({ candidateKey, name, category, packageSpec }) => ({
+      candidateKey,
+      name,
+      category,
+      packageSpec,
+    })),
+  };
+  const inputHash = await sha256(JSON.stringify(providerInput));
+  const { data: claim, error: claimError } = await userClient.rpc("claim_receipt_ai_match_call", {
+    p_receipt_import_id: receiptImportId,
+    p_input_hash: inputHash,
+    p_item_count: items.length,
+    p_provider: MATCH_PROVIDER,
+    p_model: model,
+  });
+  if (claimError) {
+    return {
+      items,
+      status: claimError.message === "RATE_LIMITED" ? "rate_limited" : "unavailable",
+      provider: MATCH_PROVIDER,
+    };
+  }
+
+  const claimData = claim && typeof claim === "object" ? claim as Record<string, unknown> : {};
+  const matchCallId = typeof claimData.matchCallId === "string" ? claimData.matchCallId : "";
+  const finish = async (
+    status: "succeeded" | "failed",
+    response: MatchSuggestion[] | null,
+    errorCode: string | null,
+    usage?: OpenAIResponse["usage"],
+  ) => {
+    if (!matchCallId) return;
+    await service.rpc("complete_receipt_ai_match_call", {
+      p_match_call_id: matchCallId,
+      p_status: status,
+      p_response: response,
+      p_error_code: errorCode,
+      p_input_tokens: typeof usage?.input_tokens === "number" ? usage.input_tokens : null,
+      p_output_tokens: typeof usage?.output_tokens === "number" ? usage.output_tokens : null,
+    });
+  };
+
+  let suggestions: MatchSuggestion[] | null = null;
+  if (claimData.mode === "cached") {
+    suggestions = normalizeSuggestions({ suggestions: claimData.response }, items.length);
+  } else if (claimData.mode === "busy") {
+    return { items, status: "unavailable", provider: MATCH_PROVIDER };
+  } else if (claimData.mode === "call") {
+    let providerResponse: Response;
+    try {
+      providerResponse = await fetch(OPENAI_RESPONSES_URL, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          store: false,
+          reasoning: { effort: "minimal" },
+          max_output_tokens: MAX_MATCH_OUTPUT_TOKENS,
+          safety_identifier: await sha256(userId),
+          instructions: matchInstructions,
+          input: JSON.stringify(providerInput),
+          text: {
+            verbosity: "low",
+            format: {
+              type: "json_schema",
+              name: "receipt_ingredient_suggestions",
+              strict: true,
+              schema: matchSchema,
+            },
+          },
+        }),
+      });
+    } catch {
+      await finish("failed", null, "RECEIPT_MATCH_UNAVAILABLE");
+      return { items, status: "unavailable", provider: MATCH_PROVIDER };
+    }
+    if (!providerResponse.ok) {
+      await finish("failed", null, "RECEIPT_MATCH_UNAVAILABLE");
+      return { items, status: "unavailable", provider: MATCH_PROVIDER };
+    }
+    let providerBody: OpenAIResponse;
+    try {
+      providerBody = await providerResponse.json() as OpenAIResponse;
+    } catch {
+      await finish("failed", null, "RECEIPT_MATCH_RESPONSE_INVALID");
+      return { items, status: "unavailable", provider: MATCH_PROVIDER };
+    }
+    try {
+      const text = outputText(providerBody);
+      suggestions = text ? normalizeSuggestions(JSON.parse(text), items.length) : null;
+    } catch {
+      suggestions = null;
+    }
+    if (!suggestions) {
+      await finish("failed", null, "RECEIPT_MATCH_RESPONSE_INVALID", providerBody.usage);
+      return { items, status: "unavailable", provider: MATCH_PROVIDER };
+    }
+    await finish("succeeded", suggestions, null, providerBody.usage);
+  }
+
+  if (!suggestions) return { items, status: "unavailable", provider: MATCH_PROVIDER };
+  const candidatesByKey = new Map(candidates.map((candidate) => [candidate.candidateKey, candidate]));
+  const enriched = items.map((item, position) => {
+    const suggestion = suggestions?.find((entry) => entry.position === position);
+    if (!suggestion) return item;
+    const candidate = suggestion.suggestedCandidateKey
+      ? candidatesByKey.get(suggestion.suggestedCandidateKey)
+      : undefined;
+    return {
+      ...item,
+      suggestedIngredientId: candidate?.id ?? null,
+      suggestedName: candidate?.name ?? suggestion.suggestedIngredientName ?? suggestion.normalizedName,
+      suggestionConfidence: confidenceNumber(suggestion.confidence),
+      suggestionReason: suggestion.specificationSensitive
+        ? `规格敏感，需确认。${suggestion.reason}`.slice(0, 300)
+        : suggestion.reason.slice(0, 300),
+      suggestionSource: MATCH_PROVIDER,
+    };
+  });
+  return { items: enriched, status: "applied", provider: MATCH_PROVIDER };
 };
 
 const fieldText = (field?: AzureField) => {
@@ -211,12 +479,28 @@ Deno.serve(async (request) => {
     unit: typeof item.unit === "string" ? item.unit : null,
     price: typeof item.price === "number" || typeof item.price === "string" ? item.price : null,
   }));
+  const enrichment = await enrichWithAiSuggestions(
+    userClient,
+    service,
+    userData.user.id,
+    receiptImportId,
+    items,
+  );
   const { data, error } = await service.rpc("apply_receipt_recognition", {
     p_receipt_import_id: receiptImportId,
     p_raw_text: typeof recognized.rawText === "string" ? recognized.rawText : null,
-    p_items: items,
+    p_items: enrichment.items,
     p_provider: "azure_document_intelligence",
   });
   if (error) return await fail(service, receiptImportId, "OCR_RESPONSE_INVALID", 502);
-  return json(data as Record<string, unknown>);
+  const { error: suggestionStatusError } = await service.from("receipt_imports")
+    .update({
+      suggestion_status: enrichment.status,
+      suggestion_provider: enrichment.provider,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", receiptImportId)
+    .eq("user_id", userData.user.id);
+  if (suggestionStatusError) console.error("receipt suggestion status update failed");
+  return json({ ...(data as Record<string, unknown>), suggestionStatus: enrichment.status });
 });

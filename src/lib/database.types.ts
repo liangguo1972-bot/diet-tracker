@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       body_metrics: {
@@ -554,6 +579,89 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_ai_match_calls: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          input_hash: string
+          input_tokens: number | null
+          item_count: number
+          model: string
+          output_tokens: number | null
+          provider: string
+          receipt_import_id: string
+          response: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          input_hash: string
+          input_tokens?: number | null
+          item_count: number
+          model: string
+          output_tokens?: number | null
+          provider: string
+          receipt_import_id: string
+          response?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          input_hash?: string
+          input_tokens?: number | null
+          item_count?: number
+          model?: string
+          output_tokens?: number | null
+          provider?: string
+          receipt_import_id?: string
+          response?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_ai_match_calls_receipt_import_id_fkey"
+            columns: ["receipt_import_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_ai_match_policy: {
+        Row: {
+          daily_limit: number
+          max_items: number
+          monthly_limit: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          daily_limit: number
+          max_items: number
+          monthly_limit: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          daily_limit?: number
+          max_items?: number
+          monthly_limit?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       receipt_imports: {
         Row: {
           confirmed_at: string | null
@@ -572,6 +680,8 @@ export type Database = {
           source_type: string
           status: string
           storage_path: string
+          suggestion_provider: string | null
+          suggestion_status: string
           updated_at: string
           user_id: string
         }
@@ -592,6 +702,8 @@ export type Database = {
           source_type?: string
           status?: string
           storage_path: string
+          suggestion_provider?: string | null
+          suggestion_status?: string
           updated_at?: string
           user_id: string
         }
@@ -612,6 +724,8 @@ export type Database = {
           source_type?: string
           status?: string
           storage_path?: string
+          suggestion_provider?: string | null
+          suggestion_status?: string
           updated_at?: string
           user_id?: string
         }
@@ -637,6 +751,11 @@ export type Database = {
           raw_unit: string | null
           receipt_import_id: string
           storage: string | null
+          suggested_ingredient_id: string | null
+          suggested_name: string | null
+          suggestion_confidence: number | null
+          suggestion_reason: string | null
+          suggestion_source: string | null
           updated_at: string
         }
         Insert: {
@@ -658,6 +777,11 @@ export type Database = {
           raw_unit?: string | null
           receipt_import_id: string
           storage?: string | null
+          suggested_ingredient_id?: string | null
+          suggested_name?: string | null
+          suggestion_confidence?: number | null
+          suggestion_reason?: string | null
+          suggestion_source?: string | null
           updated_at?: string
         }
         Update: {
@@ -679,6 +803,11 @@ export type Database = {
           raw_unit?: string | null
           receipt_import_id?: string
           storage?: string | null
+          suggested_ingredient_id?: string | null
+          suggested_name?: string | null
+          suggestion_confidence?: number | null
+          suggestion_reason?: string | null
+          suggestion_source?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -701,6 +830,13 @@ export type Database = {
             columns: ["receipt_import_id"]
             isOneToOne: false
             referencedRelation: "receipt_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_items_suggested_ingredient_id_fkey"
+            columns: ["suggested_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
             referencedColumns: ["id"]
           },
         ]
@@ -1169,6 +1305,16 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_receipt_ai_match_call: {
+        Args: {
+          p_input_hash: string
+          p_item_count: number
+          p_model: string
+          p_provider: string
+          p_receipt_import_id: string
+        }
+        Returns: Json
+      }
       claim_recipe_parse_call: {
         Args: { p_input_chars: number; p_model: string; p_provider: string }
         Returns: Json
@@ -1180,6 +1326,17 @@ export type Database = {
           p_shopping_list_id: string
         }
         Returns: Json
+      }
+      complete_receipt_ai_match_call: {
+        Args: {
+          p_error_code?: string
+          p_input_tokens?: number
+          p_match_call_id: string
+          p_output_tokens?: number
+          p_response?: Json
+          p_status: string
+        }
+        Returns: undefined
       }
       complete_recipe_parse_call: {
         Args: {
@@ -1477,6 +1634,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

@@ -495,9 +495,56 @@ const { data, error } = await supabase.rpc('search_receipt_ingredients', {
 
 返回当前用户最多 30 条已有食材，包括 `ingredient_id`、`name`、`category`、`package_spec`、`storage_guidance` 和 `is_verified`。它不返回其他用户的食材。`storage_guidance` 是食材保存建议，例如“冷藏约一周”，不等于库存位置三值枚举。
 
-匹配优先级是用户已确认的完整别名、已有食材完整同名、低置信度推荐。完整别名按用户隔离。用户把不同小票名称分别确认到同一食材后，多个别名可以指向同一 `ingredient_id`。第一次遇到跨语言或新品牌名称时不会进行语义猜测，需要用户通过 `search_receipt_ingredients` 明确选择。
+匹配优先级是用户已确认的完整别名、已有食材完整同名、待确认建议。完整别名按用户隔离。用户把不同小票名称分别确认到同一食材后，多个别名可以指向同一 `ingredient_id`。第一次遇到跨语言或新品牌名称时，服务端可以返回 AI 待确认建议；用户仍可通过 `search_receipt_ingredients` 搜索并明确选择。
 
 包含关系和其他模糊结果只返回 `possible_match`，推荐项仍需用户确认。普通酸奶与无糖酸奶、普通牛奶与低脂或高钙牛奶等规格敏感名称，只要不是完整同名或已经人工确认的完整别名，就不能自动成为 `matched`。未匹配库存可以被 `search_cook_inventory` 返回，并可通过 `save_cook_session.p_unmatched_items` 按相同量词扣减，但不会写入 `cook_items`，因此不能成为可靠营养来源或单品选择器结果。
+
+#### AI 商品匹配建议
+
+状态：**后端结构、限额、降级和远端权限已经验证。生产环境尚未配置 `OPENAI_API_KEY`，真实 AI 建议暂未开放。Azure OCR、人工搜索和确认入库不受影响。**
+
+`process-receipt` 先使用 Azure 提取商品行，再选择性调用 OpenAI Responses API，把商品名称和当前用户已有食材目录转换为可编辑建议。小票图片和完整 OCR 原文不会发送给 OpenAI。请求使用 `store: false`，默认模型为 `gpt-5-mini`。
+
+需要的服务端 Secret：
+
+1. `OPENAI_API_KEY`。可与 `parse-recipe` 复用，只保存在 Supabase Secrets。
+2. `RECEIPT_MATCH_MODEL`。可选。未配置时使用 `gpt-5-mini`。
+
+每张小票最多调用一次，不按商品行分别调用。默认限制为每位用户每天 10 次、每月 100 次、每次最多 100 行。相同导入、相同商品行和相同食材目录会复用第一次成功结果。只有真实调用进入限额记录。限额保存在 `receipt_ai_match_policy`，调用和 token 统计保存在 `receipt_ai_match_calls`；两张表不允许前端直接读写。
+
+`get_receipt_import` 新增：
+
+```ts
+type ReceiptSuggestionStatus =
+  | 'not_requested'
+  | 'not_configured'
+  | 'applied'
+  | 'unavailable'
+  | 'rate_limited'
+
+type ReceiptDraft = {
+  suggestionStatus: ReceiptSuggestionStatus
+  suggestionProvider: 'openai' | null
+  items: Array<{
+    ingredientId: string | null             // 已确认食材
+    suggestedIngredientId: string | null    // 待确认候选
+    suggestedIngredientName: string | null
+    suggestedName: string | null
+    suggestionConfidence: number | null
+    suggestionReason: string | null
+    suggestionSource: 'name_similarity' | 'openai' | null
+    matchStatus: 'matched' | 'possible_match' | 'unmatched' | 'ignored'
+  }>
+}
+```
+
+`ingredientId` 和 `suggestedIngredientId` 的语义不能互换。完整别名和完整同名可以写入 `ingredientId` 并返回 `matched`。AI 或名称相似建议只能写入 `suggestedIngredientId` 并返回 `possible_match`。置信度再高也不能自动提升为已确认状态。用户主动采用建议后，前端在 `update_receipt_items` 中把候选 ID 作为 `ingredientId` 提交；`confirm_receipt_import` 才会把完整小票名称写成别名。
+
+酸奶、牛奶等规格敏感商品必须保持 `possible_match`。建议理由会标记规格风险。只有用户已确认过的完整别名可以在下次自动成为 `matched`。
+
+AI 未配置、超限、网络失败或返回无效结构时，`process-receipt` 仍保存 Azure 商品行并进入 `ready_for_review`。这些状态通过 `suggestionStatus` 表达，不会替换为 `OCR_UNAVAILABLE`，也不会阻断人工搜索、未匹配库存占位或确认入库。
+
+内部稳定错误语义包括 `RECEIPT_MATCH_NOT_CONFIGURED`、`RECEIPT_MATCH_INPUT_INVALID`、`RECEIPT_MATCH_UNAVAILABLE`、`RECEIPT_MATCH_RESPONSE_INVALID` 和 `RATE_LIMITED`。它们用于调用记录和排查。当前前端不需要把它们显示为阻断错误。
 
 | 错误码 | 前端行为 |
 |---|---|
