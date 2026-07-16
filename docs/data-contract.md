@@ -1,6 +1,6 @@
 # Diet Tracker · 前后端数据契约
 
-最后更新：2026-07-15
+最后更新：2026-07-16
 
 ## 1. 这份文档的作用
 
@@ -29,6 +29,7 @@ Figma 可以提出新的数据需求，但不能自行增加数据库字段。Ex
 8. 从库存做饭，保存真实成品并扣减库存。
 9. 从成品选择器记餐，并查看今天营养。
 10. 照片小票上传、人工确认后写入库存，并匹配已有食材。
+11. 不依赖已有菜谱，从库存保存真实成品，再从本锅生成候选菜谱。
 
 第一版不包含 PDF、营养标签识别、自动创建食材、单品选择器扩展、低量阈值、临期规则、替代食材、不同单位换算、库存手工调整、撤销已做成品、趋势、周报和身体数据。照片识别依赖服务器端 OCR 配置。没有配置时会返回明确失败状态。
 
@@ -54,7 +55,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 | `ingredients` | 食材营养和标准份量 |
 | `recipes` | 配方参考模板 |
 | `recipe_items` | 配方包含的参考食材和克数 |
-| `cook_sessions` | 某次实际做出的成品 |
+| `cook_sessions` | 某次实际做出的成品。`source_type` 区分已有菜谱和无菜谱来源，`recipe_confirmation_status` 保存从本锅生成菜谱的确认状态 |
 | `cook_items` | 该次做饭实际使用的食材和克数 |
 | `meals` | 一顿饭的日期和餐次 |
 | `meal_items` | 一顿饭中的成品或单品，`position` 保存显示顺序 |
@@ -66,7 +67,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 | `weekly_plan_items` | 每周计划中的食谱、日期、份数和顺序 |
 | `shopping_lists` | 由周计划生成的采购清单主记录 |
 | `shopping_list_items` | 合并后的食材需求、库存覆盖量和采购完成状态 |
-| `operation_requests` | `complete_purchase`、`save_cook_session`、`confirm_receipt_import` 与 `create_recipe` 的幂等结果 |
+| `operation_requests` | 采购、做饭、无菜谱做饭、从本锅生成菜谱、小票确认与创建菜谱的幂等结果 |
 | `receipt_imports` | 私有照片上传、识别状态、原始文本与确认时间 |
 | `receipt_items` | 小票商品行、匹配建议、人工确认结果与入库库存批次 |
 | `ingredient_aliases` | 当前用户确认过的商品别名到已有食材的映射 |
@@ -675,6 +676,153 @@ await supabase.rpc('get_operation_result', {
 
 直接加入本周仍未支持。保存成功只加入候选菜池，之后使用现有周计划编辑流程。
 
+### 8.5 FR-004 无菜谱做饭并生成候选菜谱
+
+状态：**已支持并完成远端验证。** 该路径不修改已有 `save_cook_session`。所有调用要求登录。
+
+#### 数据流和事务边界
+
+```text
+search_cook_inventory
+→ save_cook_session_without_recipe
+→ 成品进入记餐选择器，菜谱确认状态为 pending
+→ get_cook_recipe_confirmation
+→ create_recipe_from_cook_session
+→ 菜谱和候选记录创建，确认状态为 confirmed
+```
+
+保存成品和生成菜谱是两个独立事务。第一步成功后，真实成品和库存扣减不会因为第二步失败而撤销。第二步可以通过本锅 ID 重新读取并重试。
+
+#### 保存无菜谱成品
+
+```ts
+const cookKey = crypto.randomUUID()
+
+const { data, error } = await supabase.rpc('save_cook_session_without_recipe', {
+  p_name: '番茄牛肉锅',
+  p_cooked_on: '2026-07-16',
+  p_total_servings: 2,
+  p_note: '',
+  p_idempotency_key: cookKey,
+  p_items: [{
+    inventoryId: beefInventoryId,
+    ingredientId: beefIngredientId,
+    quantityUsed: 0.5,
+    unit: '盒',
+    grams: 500,
+    note: '',
+  }],
+  p_unmatched_items: [{
+    inventoryId: unmatchedInventoryId,
+    quantityUsed: 0.25,
+    unit: '盒',
+    note: '',
+  }],
+})
+```
+
+`p_items` 至少一项，最多 100 项。每项必须引用当前用户有库存的已匹配食材，并同时提交：
+
+1. `quantityUsed + unit`。用于库存批次扣减和库存流水。单位必须和该批次完全相同。
+2. `grams`。用户确认的正数克重，用于 `cook_items`、本锅营养和后续生成菜谱。
+
+两类数字相互独立。后端不会用“盒、个、把、碗”等量词推算克重。多个库存批次可以指向同一食材；本锅会按食材汇总克重。
+
+`p_unmatched_items` 可省略。它只允许引用 `ingredient_id` 为空的当前用户库存，并按相同单位扣减。未匹配条目写入 `cook_unmatched_items`，不会写入 `cook_items`，不会参与营养，也不会进入后续菜谱。
+
+成功返回：
+
+```ts
+type SaveCookWithoutRecipeResult = {
+  cookSessionId: string
+  name: string
+  cookedOn: string
+  totalServings: number
+  sourceType: 'without_recipe'
+  recipeConfirmationStatus: 'pending'
+  nutrition: Nutrition & { estimated: boolean }
+}
+```
+
+成品保存后已经可以被 `search_meal_components({ p_source_type: 'cook_session', p_query: '' })` 读取。前端必须重新请求真实选择器，不能插入本地对象。
+
+#### 恢复菜谱确认
+
+`get_kitchen_home` 的每条 `readyCookSessions` 新增：
+
+```ts
+{
+  recipeId: string | null
+  sourceType: 'recipe' | 'without_recipe'
+  recipeConfirmationStatus: 'not_required' | 'pending' | 'confirmed'
+}
+```
+
+`pending` 表示成品已经保存，但还没有生成菜谱。前端可以显示“继续确认菜谱”。详情调用：
+
+```ts
+await supabase.rpc('get_cook_recipe_confirmation', {
+  p_cook_session_id: cookSessionId,
+})
+```
+
+返回本锅名称、份数、确认状态、已匹配食材及克重、未匹配库存条目，以及确认后产生的 `recipeId` 和 `candidateId`。跨用户或不存在的本锅统一返回 `INVALID_REFERENCE`。
+
+#### 从本锅生成候选菜谱
+
+```ts
+const recipeKey = crypto.randomUUID()
+
+await supabase.rpc('create_recipe_from_cook_session', {
+  p_cook_session_id: cookSessionId,
+  p_name: '番茄牛肉锅',
+  p_idempotency_key: recipeKey,
+})
+```
+
+RPC 只读取该本锅已经保存的 `cook_items`，按食材汇总克重，并在一个事务中创建 `recipes`、`recipe_items`、`candidate` 状态的 `recipe_candidates`，随后把本锅改为 `confirmed` 并关联新菜谱。前端不重新提交食材或克重列表，因此第二步不能篡改第一步已经确认的营养数据。
+
+菜谱份数沿用本锅 `totalServings`。未匹配库存和调味品不会进入菜谱。第一版不直接加入本周计划。
+
+同名菜谱不覆盖，返回 `DUPLICATE_RECIPE_NAME`。失败时本锅继续保持 `pending`。用户修改名称后可以重新确认。
+
+#### 幂等、网络恢复和权限
+
+两步分别使用 `save_cook_without_recipe` 和 `create_recipe_from_cook_session` 操作类型。同键同请求返回第一次成功结果。同键不同请求返回 `IDEMPOTENCY_CONFLICT`。
+
+网络结果未知时保留原键查询：
+
+```ts
+await supabase.rpc('get_operation_result', {
+  p_operation_type: 'save_cook_without_recipe',
+  p_idempotency_key: cookKey,
+})
+
+await supabase.rpc('get_operation_result', {
+  p_operation_type: 'create_recipe_from_cook_session',
+  p_idempotency_key: recipeKey,
+})
+```
+
+`cook_sessions`、`cook_items` 和 `cook_unmatched_items` 不允许前端直接新增、修改或删除。写入只能通过事务 RPC。库存、本锅、食材和菜谱全部按 `auth.uid()` 验证；跨用户引用不透露记录是否存在。
+
+#### 错误码和前端状态
+
+| 错误码 | 前端行为 |
+|---|---|
+| `COOK_NAME_REQUIRED` | 标出成品名称并保留全部选择。 |
+| `COOK_ITEMS_INVALID` | 重新检查商品行、重复库存批次或本锅状态。 |
+| `GRAMS_REQUIRED` | 在对应主要食材行要求填写正数克重。 |
+| `QUANTITY_INVALID` | 标出份数或库存扣减数量。 |
+| `UNIT_CONFLICT` | 保留草稿，不换算单位，要求使用库存原单位。 |
+| `INSUFFICIENT_STOCK` | 显示后端返回的库存批次、可用数量和单位。整次保存已经回滚。 |
+| `DUPLICATE_RECIPE_NAME` | 本锅保持待确认，要求修改菜名。旧菜谱不会被覆盖。 |
+| `CONFLICT` | 重新读取本锅状态。已确认本锅不能再次生成菜谱。 |
+| `INVALID_REFERENCE` | 重新读取库存或本锅；跨用户记录不能使用。 |
+| `IDEMPOTENCY_REQUIRED`、`IDEMPOTENCY_CONFLICT` | 保留原键查询；修改提交内容后再生成新键。 |
+| `AUTH_REQUIRED`、权限错误 | 回登录页，不显示缓存的其他用户数据。 |
+| `NETWORK_UNKNOWN` | 不生成新键。先查询原操作结果，再决定是否使用原键重试。 |
+
 ## 9. 新需求处理规则
 
 当 Figma 出现本文没有的数据时：
@@ -692,6 +840,7 @@ await supabase.rpc('get_operation_result', {
 3. 前端真实 Supabase 联调 `get_today`、`search_meal_components`、`save_meal` 和 `update_meal`。**已完成。**
 4. FR-002 厨房与采购真实数据闭环。**后端和前端已完成，等待产品验收。**
 5. FR-003 数据库事务、RLS 和 Edge Function。**数据库与函数部署已完成；等待配置 OpenAI API key 后验证真实解析。**
+6. FR-004 无菜谱做饭并从本锅生成候选菜谱。**后端已完成并验证，等待前端接入。**
 
 ## 11. 新需求记录
 

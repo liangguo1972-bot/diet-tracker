@@ -121,7 +121,10 @@ export type Database = {
           id: string
           name: string | null
           note: string | null
+          recipe_confirmation_status: string
+          recipe_confirmed_at: string | null
           recipe_id: string | null
+          source_type: string
           total_servings: number
           user_id: string
         }
@@ -130,7 +133,10 @@ export type Database = {
           id?: string
           name?: string | null
           note?: string | null
+          recipe_confirmation_status?: string
+          recipe_confirmed_at?: string | null
           recipe_id?: string | null
+          source_type?: string
           total_servings?: number
           user_id?: string
         }
@@ -139,7 +145,10 @@ export type Database = {
           id?: string
           name?: string | null
           note?: string | null
+          recipe_confirmation_status?: string
+          recipe_confirmed_at?: string | null
           recipe_id?: string | null
+          source_type?: string
           total_servings?: number
           user_id?: string
         }
@@ -1361,6 +1370,14 @@ export type Database = {
         }
         Returns: Json
       }
+      create_recipe_from_cook_session: {
+        Args: {
+          p_cook_session_id: string
+          p_idempotency_key: string
+          p_name: string
+        }
+        Returns: Json
+      }
       create_recipe_with_candidate: {
         Args: {
           p_idempotency_key: string
@@ -1377,6 +1394,10 @@ export type Database = {
       }
       get_cook_preparation: {
         Args: { p_plan_item_id?: string; p_recipe_id: string }
+        Returns: Json
+      }
+      get_cook_recipe_confirmation: {
+        Args: { p_cook_session_id: string }
         Returns: Json
       }
       get_kitchen_home: { Args: { p_date?: string }; Returns: Json }
@@ -1415,6 +1436,18 @@ export type Database = {
           p_name: string
           p_note: string
           p_recipe_id: string
+          p_total_servings: number
+          p_unmatched_items?: Json
+        }
+        Returns: Json
+      }
+      save_cook_session_without_recipe: {
+        Args: {
+          p_cooked_on: string
+          p_idempotency_key: string
+          p_items: Json
+          p_name: string
+          p_note: string
           p_total_servings: number
           p_unmatched_items?: Json
         }
