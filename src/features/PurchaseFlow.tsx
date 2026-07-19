@@ -52,7 +52,7 @@ export function PurchaseFlow({ onTab, onSessionExpired }: {
 
   if (screen === 'edit') return <EditWeeklyPlanPage weekStart={weekStart} items={items} onBack={() => setScreen('plan')} onSaved={usePlan} onTab={changeTab} onSessionExpired={onSessionExpired} />
   if (screen === 'add-recipe') return <AddRecipePage onBack={() => setScreen('candidates')} onTab={changeTab} />
-  if (screen === 'shopping' && planId) return <ShoppingListPage planId={planId} initialList={shoppingList} onBack={() => setScreen('plan')} onDone={() => onTab('厨房')} onTab={changeTab} onSessionExpired={onSessionExpired} />
+  if (screen === 'shopping' && planId) return <ShoppingListPage planId={planId} initialList={shoppingList} onBack={() => setScreen('plan')} onTab={changeTab} onSessionExpired={onSessionExpired} />
   if (screen === 'plan') return <WeeklyPlanPage weekStart={weekStart} planId={planId} status={planStatus} items={items} onBack={() => setScreen('candidates')} onEdit={() => setScreen('edit')} onPlanSaved={usePlan} onShopping={showShopping} onTab={changeTab} onSessionExpired={onSessionExpired} />
   return <RecipeCandidatesPage weekStart={weekStart} onAddRecipe={() => setScreen('add-recipe')} onDrawn={useDraw} onPlan={usePlan} onTab={changeTab} onSessionExpired={onSessionExpired} />
 }
