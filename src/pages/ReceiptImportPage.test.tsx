@@ -11,7 +11,7 @@ vi.mock('../data/receipts', () => ({
 }))
 
 const created = { receiptImportId: 'receipt-1', storagePath: 'user/receipt-1/source.png', status: 'uploaded' as const, reused: false }
-const uploadedReceipt: ReceiptImport = { receiptImportId: 'receipt-1', status: 'uploaded', fileName: 'IMG_4067.png', contentType: 'image/png', storagePath: created.storagePath, merchantName: null, purchasedOn: null, errorCode: null, items: [] }
+const uploadedReceipt: ReceiptImport = { receiptImportId: 'receipt-1', status: 'uploaded', fileName: 'IMG_4067.png', contentType: 'image/png', storagePath: created.storagePath, merchantName: null, purchasedOn: null, errorCode: null, quantityReviewStatus: 'not_applicable', quantityReviewParser: null, quantityReviewEvidence: {}, items: [] }
 const summary: ReceiptImportSummary = { receiptImportId: 'receipt-1', status: 'uploaded', fileName: 'IMG_4067.png', merchantName: null, purchasedOn: null, errorCode: null, createdAt: '2026-07-15T12:00:00Z', confirmedAt: null }
 
 function renderPage() {

@@ -1,6 +1,6 @@
 import type { Json } from '../lib/database.types'
 import { supabase, supabaseConfigError } from '../lib/supabase'
-import type { ConfirmReceiptResult, ReceiptAction, ReceiptImport, ReceiptImportCreated, ReceiptImportStatus, ReceiptImportSummary, ReceiptIngredientOption, ReceiptItem, ReceiptItemInput, ReceiptMatchStatus } from '../receipt-types'
+import type { ConfirmReceiptResult, ReceiptAction, ReceiptImport, ReceiptImportCreated, ReceiptImportStatus, ReceiptImportSummary, ReceiptIngredientOption, ReceiptItem, ReceiptItemInput, ReceiptMatchStatus, ReceiptQuantityReviewEvidence, ReceiptQuantityReviewStatus, ReceiptQuantitySource } from '../receipt-types'
 import { toDataError, toOperationError } from './errors'
 
 type JsonRecord = Record<string, Json | undefined>
@@ -21,11 +21,30 @@ const numeric = (value: Json | undefined): number | null => {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
+const jsonObject = (value: Json | undefined): Record<string, unknown> => value && !Array.isArray(value) && typeof value === 'object' ? value : {}
+const optionalNumber = (value: Json | undefined): number | undefined => numeric(value) ?? undefined
+const optionalBoolean = (value: Json | undefined): boolean | undefined => typeof value === 'boolean' ? value : undefined
 
 const statuses: ReceiptImportStatus[] = ['uploaded', 'processing', 'ready_for_review', 'failed', 'confirmed', 'cancelled']
 const matches: ReceiptMatchStatus[] = ['matched', 'possible_match', 'unmatched', 'ignored']
 const actions: ReceiptAction[] = ['add_to_inventory', 'ignore']
+const quantityReviewStatuses: ReceiptQuantityReviewStatus[] = ['not_applicable', 'verified', 'needs_review']
+const quantitySources: ReceiptQuantitySource[] = ['azure', 'whole_foods_verified', 'fallback']
 const member = <T extends string>(value: Json | undefined, values: T[], fallback: T): T => values.includes(text(value) as T) ? text(value) as T : fallback
+
+const parseQuantityReviewEvidence = (value: Json | undefined): ReceiptQuantityReviewEvidence => {
+  const evidence = jsonObject(value) as JsonRecord
+  return {
+    netSales: optionalNumber(evidence.netSales),
+    lineTotal: optionalNumber(evidence.lineTotal),
+    netSalesVerified: optionalBoolean(evidence.netSalesVerified),
+    soldItems: optionalNumber(evidence.soldItems),
+    calculatedSoldItems: optionalNumber(evidence.calculatedSoldItems),
+    soldItemsVerified: optionalBoolean(evidence.soldItemsVerified),
+    verifiedItemCount: optionalNumber(evidence.verifiedItemCount),
+    needsConfirmationItemCount: optionalNumber(evidence.needsConfirmationItemCount),
+  }
+}
 
 export function parseReceiptCreated(value: Json): ReceiptImportCreated {
   const data = record(value, '小票任务')
@@ -55,6 +74,9 @@ const parseReceiptItem = (value: Json): ReceiptItem => {
     confirmedUnit: text(item.confirmedUnit) || text(item.rawUnit),
     storage: text(item.storage),
     action: member(item.action, actions, 'add_to_inventory'),
+    quantitySource: member(item.quantitySource, quantitySources, 'fallback'),
+    quantityNeedsConfirmation: item.quantityNeedsConfirmation === true,
+    quantityEvidence: jsonObject(item.quantityEvidence),
   }
 }
 
@@ -69,6 +91,9 @@ export function parseReceiptImport(value: Json): ReceiptImport {
     merchantName: optionalText(data.merchantName),
     purchasedOn: optionalText(data.purchasedOn),
     errorCode: optionalText(data.errorCode),
+    quantityReviewStatus: member(data.quantityReviewStatus, quantityReviewStatuses, 'not_applicable'),
+    quantityReviewParser: text(data.quantityReviewParser) === 'whole_foods_v1' ? 'whole_foods_v1' : null,
+    quantityReviewEvidence: parseQuantityReviewEvidence(data.quantityReviewEvidence),
     items: list(data.items).map(parseReceiptItem),
   }
 }

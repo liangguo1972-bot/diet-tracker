@@ -254,11 +254,16 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .receipt-filter-summary span { flex: 0 0 auto; padding: 7px 13px; border-radius: var(--r-pill); background: var(--card); font-size: 13px; font-weight: 700; }
 .receipt-filter-summary span.active { color: #A0402A; background: var(--coral-tint); }
 .receipt-filter-summary p { margin: 0; color: #737a78; font-size: 12px; line-height: 1.5; }
+.receipt-quantity-review { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--r-card); color: #8a492c; background: #fff4e8; }
+.receipt-quantity-review b { font-size: 13px; }
+.receipt-quantity-review p { margin: 0; font-size: 12px; line-height: 1.5; }
 .receipt-item { padding: 14px 18px 8px; }
 .receipt-item-title { min-height: 28px; }
 .receipt-name-input { width: 100%; border: 0; border-radius: 10px; padding: 10px 12px; color: var(--ink); background: var(--canvas); font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
 .receipt-control-row { display: grid; grid-template-columns: 60px minmax(0,1fr) auto; align-items: center; gap: 8px; min-width: 0; }
 .receipt-control-row > span:first-child { color: #737a78; font-size: 12px; }
+.receipt-quantity-heading { display: flex; flex-direction: column; gap: 2px; }
+.receipt-quantity-heading small { color: var(--coral); font-size: 10px; line-height: normal; }
 .receipt-match-field { min-width: 0; height: 36px; overflow: hidden; border-radius: 10px; padding: 9px 16px; background: #f0ebe2; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .receipt-match-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .receipt-match-actions .text-button { white-space: nowrap; }

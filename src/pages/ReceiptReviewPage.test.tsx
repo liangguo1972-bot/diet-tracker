@@ -13,7 +13,8 @@ vi.mock('../data/receipts', async (importOriginal) => {
 
 const receipt: ReceiptImport = {
   receiptImportId: 'receipt-1', status: 'ready_for_review', fileName: 'receipt.jpg', contentType: 'image/jpeg', storagePath: 'p', merchantName: null, purchasedOn: null, errorCode: null,
-  items: [{ receiptItemId: 'item-1', position: 0, rawName: 'A VERY LONG UNMATCHED PRODUCT NAME', rawQuantity: 1, rawUnit: '袋', rawPrice: 5.99, ingredientId: null, ingredientName: null, matchStatus: 'unmatched', matchConfidence: null, confirmedName: 'A VERY LONG UNMATCHED PRODUCT NAME', confirmedQuantity: 1, confirmedUnit: '袋', storage: '常温', action: 'add_to_inventory' }],
+  quantityReviewStatus: 'not_applicable', quantityReviewParser: null, quantityReviewEvidence: {},
+  items: [{ receiptItemId: 'item-1', position: 0, rawName: 'A VERY LONG UNMATCHED PRODUCT NAME', rawQuantity: 1, rawUnit: '袋', rawPrice: 5.99, ingredientId: null, ingredientName: null, matchStatus: 'unmatched', matchConfidence: null, confirmedName: 'A VERY LONG UNMATCHED PRODUCT NAME', confirmedQuantity: 1, confirmedUnit: '袋', storage: '常温', action: 'add_to_inventory', quantitySource: 'fallback', quantityNeedsConfirmation: false, quantityEvidence: {} }],
 }
 
 describe('ReceiptReviewPage', () => {
@@ -52,6 +53,25 @@ describe('ReceiptReviewPage', () => {
     render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
     expect(await screen.findByText('件')).toBeTruthy()
     expect((screen.getByRole('button', { name: /确认入库/ }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('shows non-blocking receipt and line quantity review guidance', async () => {
+    vi.mocked(receiptAdapter.get).mockResolvedValue({
+      ...receipt,
+      quantityReviewStatus: 'needs_review',
+      quantityReviewParser: 'whole_foods_v1',
+      quantityReviewEvidence: { netSalesVerified: true, soldItemsVerified: true, needsConfirmationItemCount: 1 },
+      items: [{ ...receipt.items[0], confirmedQuantity: 1, confirmedUnit: '件', quantityNeedsConfirmation: true }],
+    })
+    render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
+    expect(await screen.findByText('小票数量需要复核')).toBeTruthy()
+    expect(screen.getByText(/金额核对通过/)).toBeTruthy()
+    expect(screen.getByText(/商品件数核对通过/)).toBeTruthy()
+    expect(screen.getByText(/还有 1 项数量待确认/)).toBeTruthy()
+    expect(screen.getByText('请确认数量')).toBeTruthy()
+    expect((screen.getByRole('button', { name: /确认入库/ }) as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.change(screen.getByRole('spinbutton', { name: '数量' }), { target: { value: '2' } })
+    await waitFor(() => expect(screen.queryByText('请确认数量')).toBeNull())
   })
 
   it('searches real ingredients and stores the selected ingredient id', async () => {

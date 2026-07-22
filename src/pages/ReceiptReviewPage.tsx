@@ -17,6 +17,15 @@ const labels: Record<ReceiptMatchStatus, string> = {
 const storageOptions = ['常温', '冷藏', '冷冻'] as const
 const itemStatus = (item: ReceiptItem): ReceiptMatchStatus => item.action === 'ignore' ? 'ignored' : item.matchStatus
 const validItem = (item: ReceiptItem) => item.action === 'ignore' || Boolean(item.confirmedName.trim() && storageOptions.includes(item.storage as typeof storageOptions[number]))
+const quantityReviewText = (receipt: ReceiptImport, items: ReceiptItem[]) => {
+  const evidence = receipt.quantityReviewEvidence
+  const checks: string[] = []
+  if (typeof evidence.netSalesVerified === 'boolean') checks.push(`金额核对${evidence.netSalesVerified ? '通过' : '未通过'}`)
+  if (typeof evidence.soldItemsVerified === 'boolean') checks.push(`商品件数核对${evidence.soldItemsVerified ? '通过' : '未通过'}`)
+  const reviewCount = items.filter((item) => item.action !== 'ignore' && item.quantityNeedsConfirmation).length
+  checks.push(`还有 ${reviewCount} 项数量待确认`)
+  return checks.join(' · ')
+}
 
 export function ReceiptReviewPage({ receiptImportId, onBack, onConfirmed, onTab, onSessionExpired }: {
   receiptImportId: string
@@ -85,7 +94,7 @@ export function ReceiptReviewPage({ receiptImportId, onBack, onConfirmed, onTab,
 
   function changeQuantity(item: ReceiptItem, difference: number) {
     const current = item.confirmedQuantity ?? 0
-    edit(item.receiptItemId, { confirmedQuantity: Math.max(0.01, Math.round((current + difference) * 100) / 100) })
+    edit(item.receiptItemId, { confirmedQuantity: Math.max(0.01, Math.round((current + difference) * 100) / 100), quantityNeedsConfirmation: false })
   }
 
   function closeIngredientSearch() {
@@ -130,7 +139,7 @@ export function ReceiptReviewPage({ receiptImportId, onBack, onConfirmed, onTab,
   const canConfirm = receipt?.status === 'ready_for_review' && items.length > 0 && addable.length > 0 && invalidCount === 0
   const counts = {
     unmatched: items.filter((item) => itemStatus(item) === 'unmatched').length,
-    review: items.filter((item) => item.action !== 'ignore' && (itemStatus(item) === 'possible_match' || !validItem(item))).length,
+    review: items.filter((item) => item.action !== 'ignore' && (itemStatus(item) === 'possible_match' || item.quantityNeedsConfirmation || !validItem(item))).length,
     ignored: items.filter((item) => itemStatus(item) === 'ignored').length,
   }
 
@@ -197,6 +206,7 @@ export function ReceiptReviewPage({ receiptImportId, onBack, onConfirmed, onTab,
             <div><span className="active">未匹配 {counts.unmatched}</span><span>需确认 {counts.review}</span><span>已忽略 {counts.ignored}</span></div>
             <p>确认库存即可。匹配到已有食材后，才会进入营养记录。</p>
           </section>
+          {receipt.quantityReviewStatus === 'needs_review' && <section className="receipt-quantity-review" role="status"><b>小票数量需要复核</b><p>{quantityReviewText(receipt, items)}</p></section>}
           {items.length === 0 && <div className="status-card empty-card"><span className="empty-mark">0</span><b>没有可确认商品</b><p>识别结果为空，不能写入库存。</p></div>}
           <div className="receipt-item-stack">{items.map((item) => {
             const status = itemStatus(item)
@@ -207,7 +217,7 @@ export function ReceiptReviewPage({ receiptImportId, onBack, onConfirmed, onTab,
               <input className="receipt-name-input" aria-label="库存名称" value={item.confirmedName} onChange={(event) => edit(item.receiptItemId, { confirmedName: event.target.value })} />
               <div className="receipt-control-row"><span>匹配食材</span><div className="receipt-match-field">{status === 'matched' && item.ingredientName ? `已选择：${item.ingredientName}` : suggestion?.ingredientName ? `建议：${suggestion.ingredientName}` : '选择食材'}</div><div className="receipt-match-actions">{suggestion && status !== 'matched' && <button className="text-button" onClick={() => useSuggestion(item)}>采用建议</button>}<button className="text-button" onClick={() => openIngredientSearch(item)}>{status === 'matched' ? '更换' : '搜索'}</button></div></div>
               {matchingItemId === item.receiptItemId && <div className="ingredient-search-panel"><div className="ingredient-search-heading"><b>为“{item.confirmedName}”匹配食材</b><button className="text-button neutral" onClick={closeIngredientSearch}>收起</button></div><div className="ingredient-search-form"><input aria-label="搜索已有食材" value={matchQuery} onChange={(event) => { setMatchQuery(event.target.value); setMatchOptions([]); setMatchError(null); setMatchSearched(false) }} onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })} onKeyDown={(event) => { if (event.key === 'Enter') void searchIngredients() }} placeholder="输入食材名称，例如香蕉" /><button className="secondary-button" disabled={matchLoading || !matchQuery.trim()} onClick={() => void searchIngredients()}>搜索</button></div>{matchLoading && <small>正在搜索…</small>}{matchError && <small className="field-error">{matchError}</small>}{matchSearched && !matchLoading && !matchError && matchOptions.length === 0 && <small>没有匹配，可保留为库存占位</small>}<div className="ingredient-search-results">{matchOptions.map((option) => <button className="ingredient-search-result" key={option.ingredientId} onClick={() => { edit(item.receiptItemId, { ingredientId: option.ingredientId, ingredientName: option.name, matchStatus: 'matched' }); closeIngredientSearch() }}><span><b>{option.name}</b><small>{[option.category, option.packageSpec].filter(Boolean).join(' · ') || '已有食材'}</small></span><strong>{option.isVerified ? '已验证' : '选择'}</strong></button>)}</div></div>}
-              <div className="receipt-control-row"><span>数量</span><div className="receipt-quantity-stepper"><button disabled={(item.confirmedQuantity ?? 1) <= 0.01} onClick={() => changeQuantity(item, -1)}>−</button><input aria-label="数量" type="number" min="0.01" step="0.01" value={item.confirmedQuantity ?? 1} onChange={(event) => edit(item.receiptItemId, { confirmedQuantity: event.target.value === '' ? null : Number(event.target.value) })} /><button onClick={() => changeQuantity(item, 1)}>＋</button></div><span className="receipt-unit-label">{item.confirmedUnit || '件'}</span></div>
+              <div className="receipt-control-row"><span className="receipt-quantity-heading">数量{item.quantityNeedsConfirmation && <small>请确认数量</small>}</span><div className="receipt-quantity-stepper"><button disabled={(item.confirmedQuantity ?? 1) <= 0.01} onClick={() => changeQuantity(item, -1)}>−</button><input aria-label="数量" type="number" min="0.01" step="0.01" value={item.confirmedQuantity ?? 1} onChange={(event) => edit(item.receiptItemId, { confirmedQuantity: event.target.value === '' ? null : Number(event.target.value), quantityNeedsConfirmation: false })} /><button onClick={() => changeQuantity(item, 1)}>＋</button></div><span className="receipt-unit-label">{item.confirmedUnit || '件'}</span></div>
               <div className="receipt-control-row"><span>存放</span><div className="storage-segments">{storageOptions.map((option) => <button className={item.storage === option ? 'active' : ''} key={option} onClick={() => edit(item.receiptItemId, { storage: option })}>{option}</button>)}</div></div>
               {fieldErrors[item.receiptItemId] && <small className="field-error">{fieldErrors[item.receiptItemId]}</small>}
               <div className="receipt-actions"><button className={`text-button ${status === 'matched' ? 'neutral' : ''}`} onClick={() => edit(item.receiptItemId, { ingredientId: null, ingredientName: null, matchStatus: 'unmatched' })}>{status === 'matched' ? '改为库存占位' : '保留为库存占位'}</button><button className="text-button neutral" onClick={() => edit(item.receiptItemId, { action: 'ignore' })}>忽略此项</button></div>

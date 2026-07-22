@@ -16,7 +16,7 @@ describe('FR-002 response parsing', () => {
 
   it('keeps inventory units separate from trusted grams', () => {
     const result = parseInventory([{
-      id: 'inventory-1', ingredientId: 'ingredient-1', name: '牛奶', quantity: 0.5,
+      id: 'inventory-1', ingredientId: 'ingredient-1', name: '牛奶', receiptRawName: '365SWFM OG MILK 2PCT', quantity: 0.5,
       unit: '盒', unitKind: 'container', gramsPerUnit: null, storage: '冷藏',
       purchaseDate: '2026-07-13', expiresOn: null, status: 'active', canAutoDeduct: true,
       hasTrustedGrams: false,
@@ -24,6 +24,8 @@ describe('FR-002 response parsing', () => {
     expect(result[0].quantity).toBe(0.5)
     expect(result[0].unit).toBe('盒')
     expect(result[0].gramsPerUnit).toBeNull()
+    expect(result[0].name).toBe('牛奶')
+    expect(result[0].receiptRawName).toBe('365SWFM OG MILK 2PCT')
   })
 
   it('parses missing and unit-confirmation cook states without inventing inventory', () => {

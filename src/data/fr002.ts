@@ -114,6 +114,7 @@ export function parseInventory(value: Json): InventoryLot[] {
       id: string(item.id),
       ingredientId: nullableString(item.ingredientId),
       name: string(item.name) || '未命名库存',
+      receiptRawName: nullableString(item.receiptRawName),
       quantity: number(item.quantity),
       unit: string(item.unit),
       unitKind: nullableString(item.unitKind),

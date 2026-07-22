@@ -53,6 +53,7 @@ export type InventoryLot = {
   id: string
   ingredientId: string | null
   name: string
+  receiptRawName: string | null
   quantity: number
   unit: string
   unitKind: string | null

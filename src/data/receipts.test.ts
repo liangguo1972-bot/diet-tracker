@@ -5,8 +5,9 @@ describe('FR-001 response parsing', () => {
   it('keeps real matched, possible, unmatched and ignored states', () => {
     const result = parseReceiptImport({
       receiptImportId: 'receipt-1', status: 'ready_for_review', fileName: 'very-long-receipt-name.jpg', contentType: 'image/jpeg', storagePath: 'user/receipt/source.jpg', merchantName: null, purchasedOn: null, errorCode: null,
+      quantityReviewStatus: 'needs_review', quantityReviewParser: 'whole_foods_v1', quantityReviewEvidence: { netSalesVerified: true, soldItemsVerified: true, needsConfirmationItemCount: 1 },
       items: [
-        { receiptItemId: 'a', position: 0, rawName: '牛奶', rawPrice: 6.5, ingredientId: 'i-1', ingredientName: '牛奶', matchStatus: 'matched', confirmedName: '牛奶', confirmedQuantity: 1, confirmedUnit: '盒', storage: '冷藏', action: 'add_to_inventory' },
+        { receiptItemId: 'a', position: 0, rawName: '黄桃', rawQuantity: 2.24, rawUnit: 'lb', rawPrice: 6.5, ingredientId: 'i-1', ingredientName: '黄桃', matchStatus: 'matched', confirmedName: '黄桃', confirmedQuantity: 2.24, confirmedUnit: 'lb', storage: '冷藏', action: 'add_to_inventory', quantitySource: 'whole_foods_verified', quantityNeedsConfirmation: false, quantityEvidence: { qtyLine: 'Qty 2.24 lb' } },
         { receiptItemId: 'b', position: 1, rawName: 'TOMATO', ingredientId: 'i-2', ingredientName: '番茄', matchStatus: 'possible_match', confirmedName: 'TOMATO', confirmedQuantity: 2, confirmedUnit: '个', storage: '', action: 'add_to_inventory' },
         { receiptItemId: 'c', position: 2, rawName: 'LONG UNKNOWN PRODUCT NAME', ingredientId: null, ingredientName: null, matchStatus: 'unmatched', confirmedName: 'LONG UNKNOWN PRODUCT NAME', confirmedQuantity: 1.5, confirmedUnit: '袋', storage: '冷藏', action: 'add_to_inventory' },
         { receiptItemId: 'd', position: 3, rawName: 'BAG FEE', ingredientId: null, ingredientName: null, matchStatus: 'ignored', confirmedName: null, confirmedQuantity: null, confirmedUnit: null, storage: null, action: 'ignore' },
@@ -14,6 +15,8 @@ describe('FR-001 response parsing', () => {
     })
     expect(result.items.map((item) => item.matchStatus)).toEqual(['matched', 'possible_match', 'unmatched', 'ignored'])
     expect(result.items[0].rawPrice).toBe(6.5)
+    expect(result).toMatchObject({ quantityReviewStatus: 'needs_review', quantityReviewParser: 'whole_foods_v1', quantityReviewEvidence: { netSalesVerified: true, soldItemsVerified: true } })
+    expect(result.items[0]).toMatchObject({ confirmedQuantity: 2.24, confirmedUnit: 'lb', quantitySource: 'whole_foods_verified', quantityNeedsConfirmation: false })
     expect(result.items[2]).toMatchObject({ confirmedQuantity: 1.5, ingredientId: null })
     expect(result.items[3].action).toBe('ignore')
   })

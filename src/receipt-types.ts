@@ -1,6 +1,19 @@
 export type ReceiptImportStatus = 'uploaded' | 'processing' | 'ready_for_review' | 'failed' | 'confirmed' | 'cancelled'
 export type ReceiptMatchStatus = 'matched' | 'possible_match' | 'unmatched' | 'ignored'
 export type ReceiptAction = 'add_to_inventory' | 'ignore'
+export type ReceiptQuantityReviewStatus = 'not_applicable' | 'verified' | 'needs_review'
+export type ReceiptQuantitySource = 'azure' | 'whole_foods_verified' | 'fallback'
+
+export type ReceiptQuantityReviewEvidence = {
+  netSales?: number
+  lineTotal?: number
+  netSalesVerified?: boolean
+  soldItems?: number
+  calculatedSoldItems?: number
+  soldItemsVerified?: boolean
+  verifiedItemCount?: number
+  needsConfirmationItemCount?: number
+}
 
 export type ReceiptImportCreated = {
   receiptImportId: string
@@ -25,6 +38,9 @@ export type ReceiptItem = {
   confirmedUnit: string
   storage: string
   action: ReceiptAction
+  quantitySource: ReceiptQuantitySource
+  quantityNeedsConfirmation: boolean
+  quantityEvidence: Record<string, unknown>
 }
 
 export type ReceiptImport = {
@@ -36,6 +52,9 @@ export type ReceiptImport = {
   merchantName: string | null
   purchasedOn: string | null
   errorCode: string | null
+  quantityReviewStatus: ReceiptQuantityReviewStatus
+  quantityReviewParser: 'whole_foods_v1' | null
+  quantityReviewEvidence: ReceiptQuantityReviewEvidence
   items: ReceiptItem[]
 }
 
