@@ -38,25 +38,24 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onAdH
   return (
     <main className="phone page kitchen-page">
       <div className="page-content">
-        <header className="kitchen-home-title"><h1>厨房</h1></header>
+        <header className="kitchen-home-title"><h1>厨房</h1><button className="text-button neutral" onClick={onInventory}>添加食材</button></header>
         <div className="week-scope kitchen-week"><span>本周</span><b>{monthDay(weekStart)} - {monthDay(addDays(weekStart, 6))}</b></div>
         {notice && <div className="success-banner" role="status">{notice}</div>}
         {loading && <LoadingState rows={6} />}
         {error && <ErrorState message={error} onRetry={load} />}
         {data && !loading && !error && (
           <>
-            <section className="section-card kitchen-overview-card">
-              <div className="section-heading"><span>冰箱库存</span><button className="text-button neutral" onClick={onInventory}>查看全部</button></div>
-              <button className="inventory-chips" onClick={onInventory} aria-label="查看冰箱库存">
+            <button className="kitchen-inventory-anchor" onClick={onInventory} aria-label="查看冰箱库存">
+              <span className="kitchen-inventory-label"><span>冰箱库存</span><span>查看全部 →</span></span>
+              <span className="kitchen-inventory-number"><b>{data.inventorySummary.activeLots}</b><span>批可用</span></span>
+              <span className="inventory-chips">
                 <span className={data.inventorySummary.expiringLots > 0 ? 'urgent' : undefined}>临期 {data.inventorySummary.expiringLots}</span>
-                <span>可用 {data.inventorySummary.activeLots}</span>
                 <span>用尽 {data.inventorySummary.depletedLots}</span>
-              </button>
-              <button className="feature-row inset-row" onClick={onInventory}><span><b>查看库存列表</b><small>查看数量、存放位置和到期日</small></span><strong>详情</strong></button>
-            </section>
+              </span>
+            </button>
 
             <section className="feature-section kitchen-week-section">
-              <div className="section-heading"><span>本周食谱</span><small>点菜开始做</small></div>
+              <div className="section-heading"><span>本周食谱</span><small>点一行开始做</small></div>
               <button className="feature-row card-row adhoc-entry" onClick={onAdHocCook}><span><b>无菜谱做饭</b><small>从冰箱选食材，随手做一锅</small></span><strong>开始</strong></button>
               {!data.weeklyPlan || data.weeklyPlan.items.length === 0 ? (
                 <EmptyState title="本周还没有食谱" detail="先去采购区抽取并确认本周食谱。" action={<button className="primary-button compact" onClick={() => onTab('采购')}>去规划食谱</button>} />
@@ -65,7 +64,7 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onAdH
                   {data.weeklyPlan.items.map((item) => (
                     <button className="feature-row card-row" key={item.id} onClick={() => onCook(item)}>
                       <span><b>{item.recipeName}</b><small>{weekday(item.scheduledOn)} · {item.source === 'candidate_draw' ? '本周计划' : '手动安排'} · {amount(item.plannedServings)} 份</small></span>
-                      <strong>开始做</strong>
+                      <strong>做</strong>
                     </button>
                   ))}
                 </div>

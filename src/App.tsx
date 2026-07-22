@@ -7,11 +7,12 @@ import { LoginPage } from './pages/LoginPage'
 import { MealPage } from './pages/MealPage'
 import { PickerPage } from './pages/PickerPage'
 import { TodayPage } from './pages/TodayPage'
+import { CandidatePoolPage } from './pages/CandidatePoolPage'
 import { KitchenFlow } from './features/KitchenFlow'
 import { PurchaseFlow } from './features/PurchaseFlow'
 import type { MealDraft, SelectableItem, TodayMeal } from './types'
 
-type Route = 'today' | 'meal' | 'cook-picker' | 'ingredient-picker' | 'kitchen' | 'grocery'
+type Route = 'today' | 'meal' | 'cook-picker' | 'ingredient-picker' | 'kitchen' | 'grocery' | 'candidate-pool'
 const today = () => new Date().toLocaleDateString('en-CA')
 const initialDraft = (): MealDraft => createInitialDraft(today())
 
@@ -43,8 +44,8 @@ export default function App() {
     return () => data.subscription.unsubscribe()
   }, [])
 
-  function switchTab(tab: MainTab) {
-    setRoute(tab === '记录' ? 'today' : tab === '厨房' ? 'kitchen' : 'grocery')
+  function switchTab(tab: MainTab | 'candidate-pool') {
+    setRoute(tab === '记录' ? 'today' : tab === '厨房' ? 'kitchen' : tab === 'candidate-pool' ? 'candidate-pool' : 'grocery')
   }
 
   function addItem(item: SelectableItem) {
@@ -97,6 +98,7 @@ export default function App() {
   if (route === 'cook-picker') return <PickerPage kind="cook_session" selectedItems={draft.items} onBack={() => setRoute('meal')} onAdd={addItem} onKindChange={(kind) => setRoute(kind === 'cook_session' ? 'cook-picker' : 'ingredient-picker')} onTab={switchTab} onSessionExpired={sessionExpired} />
   if (route === 'ingredient-picker') return <PickerPage kind="ingredient" selectedItems={draft.items} onBack={() => setRoute('meal')} onAdd={addItem} onKindChange={(kind) => setRoute(kind === 'cook_session' ? 'cook-picker' : 'ingredient-picker')} onTab={switchTab} onSessionExpired={sessionExpired} />
   if (route === 'kitchen') return <KitchenFlow onTab={switchTab} onSessionExpired={sessionExpired} />
+  if (route === 'candidate-pool') return <CandidatePoolPage onBack={() => setRoute('grocery')} onTab={switchTab} onSessionExpired={sessionExpired} />
   if (route === 'grocery') return <PurchaseFlow onTab={switchTab} onSessionExpired={sessionExpired} />
   return <TodayPage refreshKey={refreshKey} notice={notice} authError={authError} onNewMeal={startNewMeal} onEditMeal={editMeal} onTab={switchTab} onSignOut={signOut} onSessionExpired={sessionExpired} />
 }

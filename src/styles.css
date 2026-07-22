@@ -177,17 +177,32 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .kitchen-hero > div { display: flex; flex-direction: column; gap: 7px; }
 .kitchen-hero h1 { margin: 0; font-size: 38px; line-height: 1; letter-spacing: -.04em; }
 .kitchen-hero .date-note { border: 0; padding: 6px 0; background: transparent; cursor: pointer; }
-.kitchen-home-title { padding-top: 12px; }
+.kitchen-page .page-content, .grocery-page .page-content, .candidate-pool-page .page-content { gap: 12px; padding: 56px var(--side) 20px; }
+.kitchen-home-title { display: flex; min-height: 34px; align-items: center; justify-content: space-between; }
+.kitchen-home-title .text-button, .grocery-page .topbar .text-button, .candidate-pool-header .text-button { color: var(--muted); font-size: 13px; font-weight: 500; }
+.grocery-page .topbar { min-height: 34px; }
+.grocery-page .topbar h1 { font-size: 26px; line-height: normal; }
 .week-scope { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: rgba(255,253,246,.72); font-size: 12px; }
 .week-scope span { padding: 4px 9px; border-radius: var(--r-pill); color: white; background: var(--ink); }
 .week-scope small { color: var(--muted); text-align: right; }
-.kitchen-week { height: 48px; grid-template-columns: 80px 1fr; padding: 3px; border-radius: var(--r-pill); background: var(--card); }
-.kitchen-week span { display: grid; height: 40px; place-items: center; padding: 0; border-radius: var(--r-pill); font-size: 16px; }
-.kitchen-week b { padding-left: 22px; font-size: 17px; }
+.kitchen-week { display: flex; min-height: 42px; gap: 8px; padding: 4px; border-radius: var(--r-pill); background: var(--card); }
+.kitchen-week span { display: grid; flex: 0 0 auto; place-items: center; padding: 9px 20px; border-radius: var(--r-pill); font-size: 14px; font-weight: 500; }
+.kitchen-week b { display: grid; min-width: 0; flex: 1; place-items: center; padding: 0; font-size: 14px; font-weight: 500; }
+.kitchen-inventory-anchor { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 12px; overflow: hidden; border: 0; padding: 18px 22px; border-radius: var(--r-hero); background: var(--lime); text-align: left; cursor: pointer; }
+.kitchen-inventory-label { display: flex; width: 100%; align-items: center; justify-content: space-between; color: rgba(20,23,26,.62); font-size: 13px; font-weight: 500; }
+.kitchen-inventory-label span:last-child { font-size: 12px; }
+.kitchen-inventory-number { display: flex; align-items: baseline; gap: 8px; line-height: normal; }
+.kitchen-inventory-number b { color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-size: 44px; font-weight: 700; }
+.kitchen-inventory-number span { color: rgba(20,23,26,.55); font-size: 15px; font-weight: 500; }
 .kitchen-overview-card { padding-top: 16px; padding-bottom: 6px; }
 .kitchen-overview-card .status-card { background: var(--canvas); }
 .kitchen-week-section .section-heading { margin-bottom: 0; }
-.feature-row.adhoc-entry > strong { padding: 6px 14px; border-radius: var(--r-pill); color: #fff; background: var(--ink); font-size: 12px; }
+.kitchen-week-section .section-heading small { color: rgba(139,142,133,.8); font-size: 11px; }
+.kitchen-week-section .feature-row.card-row { min-height: 60px; padding: 12px 14px 12px 18px; }
+.kitchen-week-section .card-row-list { gap: 12px; }
+.kitchen-week-section .feature-row.card-row > span b { font-size: 15px; font-weight: 500; }
+.kitchen-week-section .feature-row.card-row > strong { padding: 7px 14px; border-radius: var(--r-pill); color: #fff; background: var(--ink); font-size: 12px; font-weight: 500; }
+.kitchen-week-section .feature-row.adhoc-entry { background: rgba(205,241,99,.32); }
 .adhoc-selected { display: flex; flex-direction: column; gap: 3px; padding: 13px 15px; border-radius: var(--r-card); background: var(--card); }
 .adhoc-selected span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .selected-row { box-shadow: inset 0 0 0 2px var(--ink); }
@@ -197,9 +212,9 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .muted-row { opacity: .72; }
 .adhoc-page input:focus, .adhoc-page textarea:focus { scroll-margin-bottom: 220px; }
 .adhoc-page .page-content.with-action { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
-.inventory-chips { display: flex; gap: 8px; border: 0; padding: 0 0 8px; background: transparent; cursor: pointer; }
-.inventory-chips span { padding: 7px 12px; border-radius: var(--r-pill); background: rgba(20,23,26,.06); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.inventory-chips .urgent { color: #A0402A; background: var(--coral-tint); }
+.inventory-chips { display: flex; gap: 8px; border: 0; padding: 0; background: transparent; }
+.inventory-chips span { padding: 6px 12px; border-radius: var(--r-pill); color: rgba(20,23,26,.7); background: rgba(20,23,26,.1); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.inventory-chips .urgent { color: var(--coral); background: var(--card); }
 .add-inventory-card { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; border-radius: var(--r-hero); color: white; background: var(--ink); }
 .add-inventory-card > div { grid-column: 1 / -1; }
 .add-inventory-card h2 { max-width: 275px; margin: 8px 0 16px; font-size: 24px; line-height: 1.15; }
@@ -337,16 +352,34 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .save-summary p:last-child { margin-bottom: 0; }
 .save-summary p span { color: var(--muted); white-space: nowrap; }
 .operation-note { border: 1px solid #aac8b8; color: #245840; background: #edf8f1; }
-.candidate-hero { min-height: 190px; padding: 22px; border-radius: var(--r-hero); color: white; background: var(--ink); }
-.candidate-hero p { color: #d8dbda; }
-.candidate-list { display: flex; flex-direction: column; gap: 10px; }
-.candidate-card { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 16px 0; }
-.candidate-card:first-of-type { border-top: 0; }
-.candidate-card h3 { max-width: 210px; margin: 8px 0 3px; font-size: 18px; overflow-wrap: anywhere; }
-.candidate-card p { margin: 0; color: var(--muted); font-size: 12px; }
-.candidate-actions { display: flex; flex: 0 0 auto; flex-direction: column; gap: 6px; }
-.candidate-actions button { border: 0; border-radius: 9px; padding: 7px 10px; background: var(--canvas); font-size: 11px; cursor: pointer; }
-.candidate-actions button:disabled { cursor: wait; opacity: .5; }
+.candidate-hero { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 14px; overflow: hidden; padding: 20px 22px; border-radius: var(--r-hero); color: white; background: var(--ink); }
+.candidate-hero > span { color: rgba(255,255,255,.6); font-size: 13px; font-weight: 500; }
+.candidate-hero-number { display: flex; align-items: baseline; gap: 8px; line-height: normal; }
+.candidate-hero-number b { color: var(--lime); font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; letter-spacing: -.02em; }
+.candidate-hero-number span { color: rgba(255,255,255,.5); font-size: 17px; font-weight: 500; }
+.candidate-hero p { margin: 0; color: rgba(255,255,255,.5); font-size: 12px; line-height: normal; }
+.candidate-hero > button { width: 100%; border: 0; padding: 14px; border-radius: var(--r-card); color: var(--ink); background: var(--lime); font-size: 15px; font-weight: 500; cursor: pointer; }
+.candidate-hero > button:disabled { cursor: not-allowed; opacity: .5; }
+.candidate-section { display: flex; flex-direction: column; gap: 12px; }
+.candidate-section .section-heading { margin-bottom: 0; }
+.candidate-section .section-heading small { color: rgba(139,142,133,.8); font-size: 11px; }
+.candidate-list { display: flex; flex-direction: column; gap: 12px; }
+.candidate-card { display: flex; width: 100%; min-height: 60px; align-items: center; justify-content: space-between; gap: 12px; overflow: hidden; border: 0; padding: 12px 14px 12px 18px; border-radius: var(--r-card); background: var(--card); text-align: left; cursor: pointer; }
+.candidate-card:disabled { cursor: wait; opacity: .55; }
+.candidate-card > span:first-child { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
+.candidate-card b { color: var(--ink); font-size: 15px; font-weight: 500; line-height: normal; }
+.candidate-card small { color: var(--muted); font-size: 12px; font-weight: 400; line-height: normal; }
+.candidate-state { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-pill); color: var(--muted); background: rgba(20,23,26,.06); font-size: 12px; font-weight: 500; line-height: normal; white-space: nowrap; }
+.candidate-state.kept { color: var(--ink); background: var(--lime); }
+.candidate-state i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.candidate-expand { width: 100%; border: 0; padding: 13px; border-radius: var(--r-card); color: rgba(20,23,26,.75); background: rgba(20,23,26,.05); font-size: 13px; font-weight: 500; cursor: pointer; }
+.candidate-pool-header { display: flex; min-height: 26px; align-items: center; justify-content: space-between; }
+.candidate-pool-back { display: flex; align-items: center; gap: 10px; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.candidate-pool-back span { color: var(--muted); font-size: 18px; font-weight: 500; }
+.candidate-pool-back b { color: var(--ink); font-size: 20px; font-weight: 700; }
+.candidate-filter { display: flex; width: 100%; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: var(--card); }
+.candidate-filter button { min-width: 0; flex: 1; border: 0; padding: 9px 4px; border-radius: var(--r-pill); color: var(--muted); background: transparent; font-size: 13px; font-weight: 500; cursor: pointer; }
+.candidate-filter button.active { color: #fff; background: var(--ink); }
 .add-recipe-content { gap: 16px; }
 .recipe-form-card { display: flex; flex-direction: column; gap: 10px; }
 .recipe-form-card label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 11px; }
