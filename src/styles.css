@@ -41,7 +41,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .page-content { display: flex; flex-direction: column; gap: 24px; padding: 32px 16px 20px; }
 .page-content.with-action { padding-bottom: 154px; }
 .topbar { display: flex; min-height: 25px; align-items: center; justify-content: space-between; }
-.topbar h1 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 700; }
+.topbar h1, .kitchen-home-title h1 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 700; }
 .topbar.centered > * { width: 58px; }
 .topbar.centered h1 { width: 200px; text-align: center; }
 .back-button { border: 0; padding: 0; background: none; text-align: left; color: var(--muted); cursor: pointer; }
@@ -58,7 +58,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .goal-line, .nutrient-line, .muted { margin: 0; color: var(--muted); font-size: 13px; }
 .today-page .page-content { gap: 12px; padding: 56px var(--side) 20px; }
 .today-header { min-height: 34px; overflow: hidden; }
-.today-page .today-header h1 { font-size: 26px; line-height: normal; }
+.today-page .today-header h1, .kitchen-home-title h1 { font-size: 26px; line-height: normal; }
 .today-header-actions { display: flex; align-items: center; gap: 10px; }
 .today-page .date-pill { min-height: 34px; flex: 0 0 auto; padding: 8px 14px; font-size: 13px; line-height: normal; }
 .today-page .logout-button { padding: 8px 0; font-size: 11px; }
@@ -178,7 +178,6 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .kitchen-hero h1 { margin: 0; font-size: 38px; line-height: 1; letter-spacing: -.04em; }
 .kitchen-hero .date-note { border: 0; padding: 6px 0; background: transparent; cursor: pointer; }
 .kitchen-home-title { padding-top: 12px; }
-.kitchen-home-title h1 { margin: 0; font-size: 36px; line-height: 48px; letter-spacing: -.04em; }
 .week-scope { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: rgba(255,253,246,.72); font-size: 12px; }
 .week-scope span { padding: 4px 9px; border-radius: var(--r-pill); color: white; background: var(--ink); }
 .week-scope small { color: var(--muted); text-align: right; }
@@ -188,9 +187,7 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .kitchen-overview-card { padding-top: 16px; padding-bottom: 6px; }
 .kitchen-overview-card .status-card { background: var(--canvas); }
 .kitchen-week-section .section-heading { margin-bottom: 0; }
-.adhoc-entry { margin: 8px 0 6px; border-radius: 12px; color: #fff; background: var(--ink); }
-.feature-row.adhoc-entry { background: var(--ink); }
-.adhoc-entry small, .adhoc-entry strong { color: rgba(255,255,255,.72); }
+.feature-row.adhoc-entry > strong { padding: 6px 14px; border-radius: var(--r-pill); color: #fff; background: var(--ink); font-size: 12px; }
 .adhoc-selected { display: flex; flex-direction: column; gap: 3px; padding: 13px 15px; border-radius: var(--r-card); background: var(--card); }
 .adhoc-selected span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .selected-row { box-shadow: inset 0 0 0 2px var(--ink); }
@@ -201,7 +198,7 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .adhoc-page input:focus, .adhoc-page textarea:focus { scroll-margin-bottom: 220px; }
 .adhoc-page .page-content.with-action { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
 .inventory-chips { display: flex; gap: 8px; border: 0; padding: 0 0 8px; background: transparent; cursor: pointer; }
-.inventory-chips span { padding: 7px 12px; border-radius: var(--r-pill); background: var(--card); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.inventory-chips span { padding: 7px 12px; border-radius: var(--r-pill); background: rgba(20,23,26,.06); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .inventory-chips .urgent { color: #A0402A; background: var(--coral-tint); }
 .add-inventory-card { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; border-radius: var(--r-hero); color: white; background: var(--ink); }
 .add-inventory-card > div { grid-column: 1 / -1; }
@@ -279,8 +276,8 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .receipt-page.receipt-searching .receipt-review-content { padding-bottom: calc(260px + env(safe-area-inset-bottom)); }
 .feature-section { display: flex; flex-direction: column; gap: 12px; }
 .card-row-list, .inset-row-list { display: flex; flex-direction: column; gap: 10px; }
-.card-row { min-height: 74px; padding: 12px 18px; border-radius: var(--r-card); background: var(--card); }
-.inset-row { padding: 12px 14px; border-radius: 10px; background: var(--canvas); }
+.feature-row.card-row { min-height: 74px; padding: 12px 18px; border-radius: var(--r-card); background: var(--card); }
+.feature-row.inset-row { padding: 12px 14px; border-radius: 10px; background: var(--canvas); }
 .text-button.neutral { color: var(--muted); }
 .summary-grid { display: grid; width: 100%; grid-template-columns: repeat(3, 1fr); gap: 8px; border: 0; padding: 0; background: transparent; cursor: pointer; }
 .summary-grid span { display: flex; min-height: 84px; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 3px; padding: 12px; border-radius: var(--r-card); background: var(--canvas); }
