@@ -108,10 +108,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .meal-row, .picker-row, .draft-row { display: flex; width: 100%; min-height: 68px; align-items: center; gap: 10px; border: 0; background: transparent; text-align: left; }
 button.meal-row, button.picker-row { cursor: pointer; }
 .meal-dot { width: 12px; height: 12px; flex: 0 0 auto; border-radius: 50%; background: var(--coral); }
-.meal-copy, .picker-row > span:first-child, .draft-row > span:first-child { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.meal-copy, .picker-copy, .draft-row > span:first-child { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
 .meal-row small, .picker-row small, .draft-row small { overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .meal-row > b:last-child { flex: 0 0 auto; color: var(--muted); font-size: 14px; }
-.add-row { width: 100%; padding: 14px 0 4px; border: 0; background: transparent; text-align: left; font-weight: 700; cursor: pointer; }
+.add-row { width: 100%; padding: 14px 0 4px; border: 0; color: var(--ink); background: transparent; text-align: left; font-weight: 700; cursor: pointer; }
 .status-card { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .status-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .empty-card { align-items: center; padding: 32px 20px; text-align: center; }
@@ -134,23 +134,26 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .login-card input, .note-field textarea, .search-input { width: 100%; border-radius: 10px; padding: 12px 14px; color: var(--ink); background: white; }
 .inline-error { margin: 0; color: #a43b24; font-size: 13px; line-height: 1.5; }
 .picker-page, .meal-page { background: var(--canvas); }
-.search-input { height: 48px; border: 0; background: var(--card); }
+.search-input { height: 48px; border: 0; border-radius: var(--r-card); background: var(--card); }
 .picker-tabs { width: 100%; }
 .picker-tabs button { flex: 1; height: 36px; border: 0; border-radius: var(--r-pill); background: transparent; }
 .picker-tabs button.active { color: white; background: var(--ink); }
 .picker-tabs button { cursor: pointer; }
-.picker-list { padding-bottom: 4px; }
+.picker-section, .draft-section { display: flex; flex-direction: column; gap: 10px; }
+.picker-section .section-heading, .draft-section .small-label { margin-bottom: 0; }
+.picker-list, .draft-list { display: flex; flex-direction: column; gap: 10px; }
+.picker-row, .draft-row { min-height: 60px; padding: 12px 18px; border-radius: var(--r-card); background: var(--card); }
+.picker-row > .meal-dot { width: 8px; height: 8px; background: var(--lime); }
 .picker-row strong { font-size: 17px; }
-.picker-row .selected-count { min-width: 64px; color: var(--coral); font-size: 12px; text-align: right; }
+.picker-row .selected-count { min-width: 64px; color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; text-align: right; }
 .meal-type-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.meal-type-row button { border: 0; padding: 8px 13px; border-radius: var(--r-pill); background: #eee9e0; cursor: pointer; }
+.meal-type-row button { border: 0; padding: 8px 13px; border-radius: var(--r-pill); background: var(--card); cursor: pointer; }
 .meal-type-row button.active { color: white; background: var(--ink); }
 .small-label { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
-.draft-list { padding-top: 4px; }
 .empty-line { padding: 18px 0 14px; }
 .item-actions { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 5px; }
 .stepper { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
-.stepper button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #eee9e0; cursor: pointer; }
+.stepper button { width: 28px; height: 28px; border: 0; border-radius: 50%; background: var(--canvas); cursor: pointer; }
 .stepper button:disabled { cursor: not-allowed; opacity: .35; }
 .stepper input { width: 48px; height: 30px; border-radius: 8px; background: white; text-align: center; font-family: 'Space Grotesk'; }
 .remove-button { border: 0; padding: 0; color: #a43b24; background: transparent; font-size: 11px; cursor: pointer; }

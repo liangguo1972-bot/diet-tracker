@@ -50,10 +50,10 @@ export function PickerPage({ kind, selectedItems, onBack, onAdd, onKindChange, o
         {loading && <LoadingState rows={6} />}
         {error && <ErrorState message={error} onRetry={load} />}
         {!loading && !error && items.length === 0 && <EmptyState title={query ? '没有匹配项' : `还没有可选${kind === 'cook_session' ? '成品' : '单品'}`} detail={query ? '换个关键词再试试。' : kind === 'ingredient' ? '只有设置了标准份量的食材会显示。' : '做好且仍有剩余份数的成品会显示在这里。'} />}
-        {!loading && !error && items.length > 0 && <section className="section-card picker-list"><div className="section-heading"><span>{kind === 'cook_session' ? '可用成品' : '可添加单品'}</span><small>{items.length} 项</small></div>{items.map((item) => {
+        {!loading && !error && items.length > 0 && <section className="picker-section"><div className="section-heading"><span>{kind === 'cook_session' ? '可用成品' : '可添加单品'}</span><small>{items.length} 项</small></div><div className="picker-list">{items.map((item) => {
           const selected = selectedItems.find((draftItem) => draftItem.sourceType === item.sourceType && draftItem.sourceId === item.sourceId)
-          return <button className="picker-row" key={item.sourceId} onClick={() => onAdd(item)}><span><b>{item.name}</b><small>{meta(item)}</small></span><strong className={selected ? 'selected-count' : ''}>{selected ? `已加 ${selected.servings}` : '＋'}</strong></button>
-        })}</section>}
+          return <button className="picker-row" key={item.sourceId} onClick={() => onAdd(item)}>{selected && <span className="meal-dot" />}<span className="picker-copy"><b>{item.name}</b><small>{meta(item)}</small></span><strong className={selected ? 'selected-count' : ''}>{selected ? `已加 ${selected.servings}` : '＋'}</strong></button>
+        })}</div></section>}
       </div>
       <BottomNav active="记录" onChange={onTab} />
     </main>
