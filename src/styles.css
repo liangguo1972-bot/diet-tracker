@@ -54,6 +54,45 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .today-label { width: 154px; justify-content: center; color: white; background: var(--ink); font-size: 15px; font-weight: 700; }
 .date-pill { flex: 1; justify-content: center; font-size: 15px; }
 .goal-line, .nutrient-line, .muted { margin: 0; color: var(--muted); font-size: 13px; }
+.today-page .page-content { gap: 12px; padding: 56px var(--side) 20px; }
+.today-header { min-height: 34px; overflow: hidden; }
+.today-page .today-header h1 { font-size: 26px; line-height: normal; }
+.today-header-actions { display: flex; align-items: center; gap: 10px; }
+.today-page .date-pill { min-height: 34px; flex: 0 0 auto; padding: 8px 14px; font-size: 13px; line-height: normal; }
+.today-page .logout-button { padding: 8px 0; font-size: 11px; }
+.today-page .goal-line { font-size: 12px; line-height: normal; }
+.hero-card { display: flex; width: 100%; flex-direction: column; gap: 12px; overflow: hidden; padding: 20px 22px; border-radius: var(--r-hero); color: var(--on-ink); background: var(--ink); }
+.hero-label-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
+.hero-label-row strong { flex: 0 0 auto; padding: 4px 10px; border-radius: var(--r-pill); color: var(--lime); background: var(--lime-tint); font-size: 12px; font-weight: 500; }
+.hero-number { display: flex; align-items: baseline; gap: 8px; overflow: hidden; font-family: 'Space Grotesk', sans-serif; line-height: normal; white-space: nowrap; }
+.hero-number b { color: var(--lime); font-size: clamp(44px, 15vw, 58px); font-weight: 700; letter-spacing: -.02em; }
+.hero-number span { color: var(--on-ink-dim); font-size: 22px; font-weight: 500; }
+.hero-track { width: 100%; height: 10px; overflow: hidden; border-radius: var(--r-pill); background: var(--on-ink-track); }
+.hero-track span { display: block; height: 100%; border-radius: inherit; background: var(--lime); }
+.hero-card p { margin: 0; color: var(--on-ink-dim); font-size: 12px; font-weight: 500; line-height: normal; }
+.stat-lime { display: flex; width: 100%; min-height: 96px; align-items: center; justify-content: space-between; overflow: hidden; padding: 18px 22px; border-radius: var(--r-hero); background: var(--lime); }
+.stat-lime-main { display: flex; flex-direction: column; gap: 6px; }
+.stat-lime-main > span { color: rgba(20,23,26,.62); font-size: 13px; font-weight: 500; }
+.stat-lime-main > div { display: flex; align-items: baseline; gap: 6px; font-family: 'Space Grotesk', sans-serif; line-height: normal; white-space: nowrap; }
+.stat-lime-main b { color: var(--ink); font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+.stat-lime-main small { color: rgba(20,23,26,.55); font-size: 15px; font-weight: 500; }
+.stat-lime-nutrients { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 6px; color: rgba(20,23,26,.62); font-size: 12px; font-weight: 500; line-height: normal; }
+.meal-section { display: flex; flex-direction: column; gap: 12px; }
+.today-page .section-heading { margin-bottom: 0; line-height: normal; }
+.today-page .section-heading small { color: rgba(139,142,133,.8); font-size: 11px; }
+.meal-list { display: flex; flex-direction: column; gap: 12px; }
+.today-page .meal-row { min-height: 60px; overflow: hidden; padding: 12px 18px; border-radius: var(--r-card); background: var(--card); }
+.today-page .meal-dot { width: 8px; height: 8px; background: var(--lime); }
+.today-page .meal-copy { gap: 3px; }
+.today-page .meal-copy b { color: var(--ink); font-size: 15px; font-weight: 500; line-height: normal; }
+.today-page .meal-row small { font-size: 12px; line-height: normal; }
+.meal-kcal { display: flex; flex: 0 0 auto; align-items: baseline; gap: 4px; font-family: 'Space Grotesk', sans-serif; line-height: normal; white-space: nowrap; }
+.meal-kcal b { color: var(--ink); font-size: 17px; font-weight: 700; }
+.meal-kcal small { color: var(--muted); font-size: 10px; font-weight: 700; }
+.today-page .meal-row.empty { color: var(--muted); background: var(--card-ghost); }
+.today-page .meal-row.empty .meal-dot { border: 1.5px solid rgba(139,142,133,.7); background: transparent; }
+.today-page .meal-row.empty .meal-copy b, .today-page .meal-row.empty .meal-copy small { color: var(--muted); }
+.meal-add { flex: 0 0 auto; color: var(--muted); font-size: 18px; font-weight: 400; line-height: normal; }
 .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .metric-card { display: flex; min-height: 137px; flex-direction: column; gap: 10px; padding: 16px; border-radius: var(--r-card); background: var(--card); }
 .metric-card.dark { color: white; background: var(--ink); }
