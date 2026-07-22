@@ -40,11 +40,13 @@ export function AdHocInventoryPickerPage({ initial, onBack, onDone, onTab, onSes
       {loading && <LoadingState rows={6} />}
       {error && <ErrorState message={error} onRetry={load} />}
       {!loading && !error && items.length === 0 && <EmptyState title={query ? '没有匹配库存' : '冰箱里还没有可用库存'} detail={query ? '换个关键词再试试。' : '先从采购或小票添加库存。'} />}
-      {!loading && !error && items.length > 0 && <section className="section-card compact-list">
+      {!loading && !error && items.length > 0 && <section className="picker-section">
         <div className="section-heading"><span>冰箱库存</span><small>可多选</small></div>
-        {items.map((item) => <button className={`feature-row ${selectedIds.has(item.inventoryId) ? 'selected-row' : ''}`} key={item.inventoryId} onClick={() => toggle(item)}>
-          <span><b>{item.name}</b><small>可用 {amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.ingredientId ? '已匹配食材' : '库存占位，不计入营养和菜谱'}</small></span><strong>{selectedIds.has(item.inventoryId) ? '已选' : '选择'}</strong>
-        </button>)}
+        <div className="picker-list">
+          {items.map((item) => <button className={`picker-row ${selectedIds.has(item.inventoryId) ? 'selected-row' : ''}`} key={item.inventoryId} onClick={() => toggle(item)}>
+            <span className="picker-copy"><b>{item.name}</b><small>可用 {amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.ingredientId ? '已匹配食材' : '库存占位，不计入营养和菜谱'}</small></span><strong>{selectedIds.has(item.inventoryId) ? '已选' : '选择'}</strong>
+          </button>)}
+        </div>
       </section>}
     </div>
     <div className="sticky-actions"><button className="primary-button" disabled={selected.length === 0} onClick={() => onDone(selected)}>添加后回到做饭页</button></div>

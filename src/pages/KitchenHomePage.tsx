@@ -52,18 +52,18 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onAdH
                 <span>可用 {data.inventorySummary.activeLots}</span>
                 <span>用尽 {data.inventorySummary.depletedLots}</span>
               </button>
-              <button className="feature-row" onClick={onInventory}><span><b>查看库存列表</b><small>查看数量、存放位置和到期日</small></span><strong>详情</strong></button>
+              <button className="feature-row inset-row" onClick={onInventory}><span><b>查看库存列表</b><small>查看数量、存放位置和到期日</small></span><strong>详情</strong></button>
             </section>
 
-            <section className="section-card kitchen-overview-card">
+            <section className="feature-section kitchen-week-section">
               <div className="section-heading"><span>本周食谱</span><small>点菜开始做</small></div>
               <button className="feature-row adhoc-entry" onClick={onAdHocCook}><span><b>无菜谱做饭</b><small>从冰箱选食材，随手做一锅</small></span><strong>开始</strong></button>
               {!data.weeklyPlan || data.weeklyPlan.items.length === 0 ? (
                 <EmptyState title="本周还没有食谱" detail="先去采购区抽取并确认本周食谱。" action={<button className="primary-button compact" onClick={() => onTab('采购')}>去规划食谱</button>} />
               ) : (
-                <div className="compact-list">
+                <div className="card-row-list">
                   {data.weeklyPlan.items.map((item) => (
-                    <button className="feature-row" key={item.id} onClick={() => onCook(item)}>
+                    <button className="feature-row card-row" key={item.id} onClick={() => onCook(item)}>
                       <span><b>{item.recipeName}</b><small>{weekday(item.scheduledOn)} · {item.source === 'candidate_draw' ? '本周计划' : '手动安排'} · {amount(item.plannedServings)} 份</small></span>
                       <strong>开始做</strong>
                     </button>
@@ -77,9 +77,9 @@ export function KitchenHomePage({ refreshKey, notice, onInventory, onCook, onAdH
               {data.readyCookSessions.length === 0 ? (
                 <EmptyState title="还没有可吃成品" detail="完成做饭并保存后，成品会出现在这里和记餐选择器中。" />
               ) : (
-                <div className="compact-list">
+                <div className="inset-row-list">
                   {data.readyCookSessions.map((item) => (
-                    <div className="feature-row static" key={item.id}>
+                    <div className="feature-row static inset-row" key={item.id}>
                       <span><b>{item.name}</b><small>{prettyDate(item.cookedOn)} 做好 · 剩余 {amount(item.availableServings)} 份</small></span>
                       {item.recipeConfirmationStatus === 'pending' ? <button className="text-button" onClick={() => onResumeConfirmation(item.id)}>继续确认菜谱</button> : <span className="status-chip success">可记餐</span>}
                     </div>

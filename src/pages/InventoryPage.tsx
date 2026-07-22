@@ -43,14 +43,16 @@ export function InventoryPage({ refreshKey, notice, onReceiptImport, onBack, onT
         {error && <ErrorState message={error} onRetry={load} />}
         {!loading && !error && items.length === 0 && <EmptyState title="冰箱还是空的" detail="采购完成后，真实库存批次会显示在这里。" action={<button className="primary-button compact" onClick={() => onTab('采购')}>去采购</button>} />}
         {!loading && !error && items.length > 0 && (
-          <section className="section-card compact-list">
+          <section className="feature-section inventory-list-section">
             <div className="section-heading"><span>库存列表</span><small>按状态分组 · {items.length} 批</small></div>
-            {items.map((item) => (
-              <div className="feature-row static inventory-row" key={item.id}>
-                <span><b>{item.name}</b><small>{amount(item.quantity)}{item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small></span>
-                <span className="inventory-detail-label">{item.status === 'active' ? '详情' : '已用尽'}</span>
-              </div>
-            ))}
+            <div className="card-row-list">
+              {items.map((item) => (
+                <div className="feature-row static inventory-row card-row" key={item.id}>
+                  <span><b>{item.name}</b><small>{amount(item.quantity)}{item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small></span>
+                  <span className="inventory-detail-label">{item.status === 'active' ? '详情' : '已用尽'}</span>
+                </div>
+              ))}
+            </div>
           </section>
         )}
         <button className="primary-button inventory-receipt-button" onClick={onReceiptImport}>从小票添加库存</button>
