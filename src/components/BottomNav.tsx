@@ -6,6 +6,7 @@ export function BottomNav({ active, onChange }: { active: MainTab; onChange: (ta
     <nav className="bottom-nav" aria-label="主导航">
       {tabs.map((tab) => (
         <button key={tab} className={active === tab ? 'nav-item active' : 'nav-item'} onClick={() => onChange(tab)}>
+          {active === tab && <span className="nav-dot" aria-hidden="true" />}
           {tab}
         </button>
       ))}
