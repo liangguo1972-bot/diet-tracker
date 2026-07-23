@@ -353,6 +353,7 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .inventory-lot > span { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
 .inventory-lot > span b { overflow-wrap: anywhere; font-size: 15px; font-weight: 500; }
 .inventory-lot > span small { color: var(--muted); font-size: 12px; }
+.inventory-lot .aged { color: var(--coral); }
 .inventory-lot > strong { display: flex; flex: 0 0 auto; align-items: baseline; gap: 3px; }
 .inventory-lot > strong b { font-family: 'Space Grotesk', sans-serif; font-size: 17px; }
 .inventory-lot > strong small { color: var(--muted); font-size: 12px; font-weight: 500; }

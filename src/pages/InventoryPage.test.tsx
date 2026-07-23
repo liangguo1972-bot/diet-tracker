@@ -36,4 +36,24 @@ describe('InventoryPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /已用尽 1 批/ }))
     expect(screen.getByText('旧库存')).toBeTruthy()
   })
+
+  it('sorts and marks aged room-temperature inventory without reordering frozen inventory', async () => {
+    vi.mocked(fr002Adapter.listInventory).mockResolvedValue([
+      lot({ id: 'cold-2', name: '冷藏 2 天', purchaseDate: addDays(localDateKey(), -2) }),
+      lot({ id: 'cold-6', name: '冷藏 6 天', purchaseDate: addDays(localDateKey(), -6) }),
+      lot({ id: 'frozen-2', name: '冷冻 2 天', storage: '冷冻', purchaseDate: addDays(localDateKey(), -2) }),
+      lot({ id: 'frozen-8', name: '冷冻 8 天', storage: '冷冻', purchaseDate: addDays(localDateKey(), -8) }),
+    ])
+    render(<InventoryPage refreshKey={0} notice={null} onReceiptImport={vi.fn()} onBack={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
+    expect(await screen.findByText('冷藏 6 天')).toBeTruthy()
+
+    const chilledSection = screen.getByText('冷藏').closest('section')
+    const frozenSection = screen.getByText('冷冻').closest('section')
+    const names = (section: Element | null) => Array.from(section?.querySelectorAll('.inventory-lot > span > b') ?? []).map((node) => node.textContent)
+
+    expect(names(chilledSection)).toEqual(['冷藏 6 天', '冷藏 2 天'])
+    expect(screen.getByText('6 天前购入').classList.contains('aged')).toBe(true)
+    expect(names(frozenSection)).toEqual(['冷冻 2 天', '冷冻 8 天'])
+    expect(screen.getByText('8 天前购入').classList.contains('aged')).toBe(false)
+  })
 })
