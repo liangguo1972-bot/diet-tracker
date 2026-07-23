@@ -32,7 +32,7 @@ export function AdHocInventoryPickerPage({ initial, onBack, onDone, onTab, onSes
   useEffect(() => { const timer = window.setTimeout(() => void load(), 180); return () => window.clearTimeout(timer) }, [load])
   const toggle = (item: CookInventoryOption) => setSelected((current) => selectedIds.has(item.inventoryId) ? current.filter((entry) => entry.inventoryId !== item.inventoryId) : [...current, item])
 
-  return <main className="phone page cook-page adhoc-page">
+  return <main className="phone page cook-page adhoc-page cook-picker-page adhoc-picker-page">
     <div className="page-content with-action">
       <header className="topbar centered"><button className="back-button" onClick={onBack}>返回</button><h1>从库存选食材</h1><span /></header>
       <input className="search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索冰箱里的食材" />
@@ -43,7 +43,7 @@ export function AdHocInventoryPickerPage({ initial, onBack, onDone, onTab, onSes
       {!loading && !error && items.length > 0 && <section className="picker-section">
         <div className="section-heading"><span>冰箱库存</span><small>可多选</small></div>
         <div className="picker-list">
-          {items.map((item) => <button className={`picker-row ${selectedIds.has(item.inventoryId) ? 'selected-row' : ''}`} key={item.inventoryId} onClick={() => toggle(item)}>
+          {items.map((item) => <button className={`picker-row cook-picker-row ${selectedIds.has(item.inventoryId) ? 'selected-row' : ''}`} key={item.inventoryId} onClick={() => toggle(item)}>
             <span className="picker-copy"><b>{item.name}</b><small>可用 {amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.ingredientId ? '已匹配食材' : '库存占位，不计入营养和菜谱'}</small></span><strong>{selectedIds.has(item.inventoryId) ? '已选' : '选择'}</strong>
           </button>)}
         </div>

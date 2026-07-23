@@ -394,6 +394,43 @@ button.meal-row, button.picker-row { cursor: pointer; }
 .save-summary p:last-child { margin-bottom: 0; }
 .save-summary p span { color: var(--muted); white-space: nowrap; }
 .operation-note { border: 1px solid #aac8b8; color: #245840; background: #edf8f1; }
+
+/* Stage 4d-2: keep the cooking surfaces local to the six cooking screens. */
+.cook-page .page-content { gap: 16px; padding-inline: var(--side); }
+.cook-page .section-card { border-radius: var(--r-card); box-shadow: none; }
+.cook-page .cook-summary { padding: 20px 22px 22px; border-radius: var(--r-hero); background: var(--lime); }
+.cook-page .cook-summary::after { border-color: rgba(20,23,26,.12); }
+.cook-page .cook-summary > * { position: relative; z-index: 1; }
+.cook-page .cook-summary .eyebrow-label { color: rgba(20,23,26,.58); }
+.cook-page .cook-summary h2 { color: var(--ink); font-weight: 700; }
+.cook-page .cook-summary p { color: rgba(20,23,26,.68); }
+.cook-page .ingredient-card,
+.cook-page .adhoc-ingredient-card,
+.cook-page .form-stack,
+.cook-page .save-summary { border-radius: var(--r-card); background: var(--card); }
+.cook-page .usage-row,
+.cook-page .adhoc-ingredient-card > label,
+.cook-page .save-summary p { border: 0; border-radius: 10px; background: var(--canvas); }
+.cook-page .usage-row label input,
+.cook-page .adhoc-ingredient-card input { border: 0; border-radius: 8px; background: var(--card); }
+.cook-page .form-stack input,
+.cook-page .form-stack textarea { border: 0; border-radius: 8px; background: var(--canvas); }
+.cook-page .usage-row label span,
+.cook-page .adhoc-ingredient-card > label span,
+.cook-page .save-summary p span,
+.cook-picker-page .picker-row strong { font-family: 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-weight: 700; }
+.cook-page .save-error { border: 0; border-radius: var(--r-card); color: #9b3a22; background: var(--coral-tint); }
+.cook-page .operation-note { border: 0; color: rgba(20,23,26,.72); background: rgba(205,241,99,.24); }
+.cook-picker-page .selection-context { padding: 0 2px; border-radius: 0; background: transparent; }
+.cook-picker-page .picker-list { gap: 12px; }
+.cook-picker-page .picker-row { min-height: 76px; border: 0; padding: 12px 18px; border-radius: var(--r-card); background: var(--card); box-shadow: none; transition: background-color .2s ease, transform .2s ease; }
+.cook-picker-page .picker-row:not(:disabled):active { transform: scale(.99); }
+.cook-picker-page .picker-row.selected-row { background: var(--lime); box-shadow: none; }
+.cook-picker-page .picker-row:disabled { cursor: default; opacity: 1; }
+.cook-picker-page .picker-row strong { padding: 7px 12px; border-radius: var(--r-pill); color: var(--ink); background: var(--canvas); font-size: 12px; }
+.cook-picker-page .picker-row.selected-row strong { color: var(--card); background: var(--ink); }
+.cook-picker-page .picker-copy small { font-variant-numeric: tabular-nums; }
+.adhoc-picker-page .adhoc-selected { border-radius: var(--r-card); background: rgba(205,241,99,.24); }
 .candidate-hero { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 14px; overflow: hidden; padding: 20px 22px; border-radius: var(--r-hero); color: white; background: var(--ink); }
 .candidate-hero > span { color: rgba(255,255,255,.6); font-size: 13px; font-weight: 500; }
 .candidate-hero-number { display: flex; align-items: baseline; gap: 8px; line-height: normal; }

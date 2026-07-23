@@ -38,7 +38,7 @@ export function CookInventoryPickerPage({ ingredientId, ingredientName, selected
   }, [load])
 
   return (
-    <main className="phone page cook-page">
+    <main className="phone page cook-page cook-picker-page cook-recipe-picker-page">
       <div className="page-content">
         <header className="topbar centered"><button className="back-button" onClick={onBack}>返回</button><h1>选择食材</h1><span /></header>
         <p className="selection-context">正在为“{ingredientName}”选择同一种食材的库存批次。</p>
@@ -52,7 +52,7 @@ export function CookInventoryPickerPage({ ingredientId, ingredientName, selected
             <div className="picker-list">
               {items.map((item) => {
                 const selected = selectedIds.includes(item.inventoryId)
-                return <button className="picker-row" key={item.inventoryId} disabled={selected} onClick={() => onSelect(item)}><span className="picker-copy"><b>{item.name}</b><small>{amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.ingredientId === null ? '库存占位，可扣减但不计入营养' : item.hasTrustedGrams ? '有可信营养克重' : '只按相同量词扣减'}</small></span><strong>{selected ? '已选择' : '选择'}</strong></button>
+                return <button className={`picker-row cook-picker-row ${selected ? 'selected-row' : ''}`} key={item.inventoryId} disabled={selected} onClick={() => onSelect(item)}><span className="picker-copy"><b>{item.name}</b><small>{amount(item.quantity)} {item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small><small>{item.ingredientId === null ? '库存占位，可扣减但不计入营养' : item.hasTrustedGrams ? '有可信营养克重' : '只按相同量词扣减'}</small></span><strong>{selected ? '已选择' : '选择'}</strong></button>
               })}
             </div>
           </section>

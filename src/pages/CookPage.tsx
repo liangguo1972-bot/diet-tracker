@@ -24,7 +24,7 @@ export function CookPage({ draft, loading, error, onRetry, onDraft, onPick, onBa
   const complete = draft ? isCookDraftComplete(draft) : false
 
   return (
-    <main className="phone page cook-page">
+    <main className="phone page cook-page cook-prep-page">
       <div className="page-content with-action">
         <header className="topbar centered"><button className="back-button" onClick={onBack}>返回</button><h1>做饭</h1><span /></header>
         {loading && <LoadingState rows={7} />}

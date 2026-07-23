@@ -8,7 +8,7 @@ export function AdHocCookPage({ draft, onDraft, onPick, onBack, onContinue, onTa
 }) {
   const update = (index: number, patch: Partial<AdHocCookDraft['items'][number]>) => onDraft({ ...draft, items: draft.items.map((item, current) => current === index ? { ...item, ...patch } : item) })
   const complete = isAdHocCookDraftComplete(draft)
-  return <main className="phone page cook-page adhoc-page">
+  return <main className="phone page cook-page adhoc-page adhoc-cook-page">
     <div className="page-content with-action">
       <header className="topbar centered"><button className="back-button" onClick={onBack}>返回</button><h1>无菜谱做饭</h1><span /></header>
       <section className="section-card cook-summary"><span className="eyebrow-label">无菜谱</span><h2>随手做一锅</h2><p>已匹配食材填写本次扣减量和主要食材克重。库存占位只扣库存，不计算营养，也不会写入菜谱。</p></section>

@@ -31,7 +31,7 @@ export function AdHocSaveCookPage({ draft, onBack, onSaved, onTab, onSessionExpi
     } catch (reason) { if (isAuthenticationRequired(reason)) onSessionExpired(); else setError(reason instanceof Error ? reason.message : '结果查询失败。') }
     finally { setChecking(false) }
   }
-  return <main className="phone page cook-page adhoc-page"><div className="page-content with-action">
+  return <main className="phone page cook-page adhoc-page cook-save-page adhoc-save-page"><div className="page-content with-action">
     <header className="topbar centered"><button className="back-button" disabled={saving || networkUnknown} onClick={onBack}>返回</button><h1>保存成品</h1><span /></header>
     <section className="section-card cook-summary"><span className="eyebrow-label">无菜谱生成</span><h2>{draft.name}</h2><p>成品保存后会立即进入记餐选择器。下一步需要确认菜谱，确认失败不会撤销成品。</p></section>
     <section className="section-card save-summary"><div className="section-heading"><span>本锅内容</span><small>{amount(draft.totalServings)} 份</small></div>{draft.items.map((item) => <p key={item.inventoryId}><b>{item.name}</b><span>{amount(item.quantityUsed ?? 0)} {item.unit}{item.ingredientId ? ` · ${amount(item.grams ?? 0)}g` : ' · 仅扣库存'}</span></p>)}</section>

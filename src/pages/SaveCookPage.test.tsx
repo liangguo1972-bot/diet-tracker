@@ -41,7 +41,8 @@ const renderPage = () => {
     onTab: vi.fn(),
     onSessionExpired: vi.fn(),
   }
-  render(<SaveCookPage {...props} />)
+  const view = render(<SaveCookPage {...props} />)
+  expect(view.container.querySelector('main')?.classList.contains('cook-save-page')).toBe(true)
   return props
 }
 

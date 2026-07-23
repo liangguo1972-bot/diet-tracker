@@ -76,7 +76,7 @@ export function SaveCookPage({ draft, onDraft, onBack, onSaved, onTab, onSession
   }
 
   return (
-    <main className="phone page cook-page">
+    <main className="phone page cook-page cook-save-page">
       <div className="page-content with-action">
         <header className="topbar centered"><button className="back-button" onClick={onBack} disabled={saving}>返回</button><h1>保存成品</h1><span /></header>
         <section className="section-card cook-summary">
