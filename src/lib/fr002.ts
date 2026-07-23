@@ -29,6 +29,17 @@ export const prettyDate = (date: string) => new Intl.DateTimeFormat('zh-CN', { m
 export const weekday = (date: string) => new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(new Date(`${date}T12:00:00`))
 export const amount = (value: number) => new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(value)
 
+export function purchaseAgeLabel(date: string | null, today = new Date()): string {
+  if (!date) return '购入日期未知'
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (!match) return '购入日期未知'
+  const purchaseDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  const localToday = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  const days = Math.max(0, Math.round((localToday - purchaseDay) / 86_400_000))
+  if (days === 0) return '今天购入'
+  return `${days} 天前购入`
+}
+
 const usageFromPreparation = (ingredientId: string, name: string, inventory: CookPreparation['items'][number]['inventories'][number], referenceGrams: number) => ({
   ...inventory,
   ingredientId,

@@ -4,7 +4,9 @@ import { EmptyState, ErrorState, LoadingState } from '../components/Status'
 import { isAuthenticationRequired } from '../data/errors'
 import { fr002Adapter } from '../data/fr002'
 import type { InventoryLot } from '../fr002-types'
-import { amount, prettyDate } from '../lib/fr002'
+import { amount, purchaseAgeLabel } from '../lib/fr002'
+
+const storageOrder = ['冷藏', '常温', '冷冻'] as const
 
 export function InventoryPage({ refreshKey, notice, onReceiptImport, onBack, onTab, onSessionExpired }: {
   refreshKey: number
@@ -17,11 +19,12 @@ export function InventoryPage({ refreshKey, notice, onReceiptImport, onBack, onT
   const [items, setItems] = useState<InventoryLot[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDepleted, setShowDepleted] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
-    try { setItems(await fr002Adapter.listInventory('', 'active')) }
+    try { setItems(await fr002Adapter.listInventory('')) }
     catch (reason) {
       if (isAuthenticationRequired(reason)) onSessionExpired()
       else setError(reason instanceof Error ? reason.message : '库存加载失败。')
@@ -34,28 +37,34 @@ export function InventoryPage({ refreshKey, notice, onReceiptImport, onBack, onT
     return () => window.clearTimeout(timer)
   }, [load, refreshKey])
 
+  const activeItems = items.filter((item) => item.status === 'active')
+  const depletedItems = items.filter((item) => item.status === 'depleted')
+  const groups: Array<{ storage: string; items: InventoryLot[] }> = storageOrder.map((storage) => ({ storage, items: activeItems.filter((item) => item.storage === storage) }))
+  const otherItems = activeItems.filter((item) => !storageOrder.includes(item.storage as typeof storageOrder[number]))
+  if (otherItems.length > 0) groups.push({ storage: '未分类', items: otherItems })
+
   return (
     <main className="phone page kitchen-page">
-      <div className="page-content">
-        <header className="topbar centered"><button className="back-button" onClick={onBack}>返回</button><h1>冰箱库存</h1><span /></header>
+      <div className="page-content inventory-page-content">
+        <header className="topbar inventory-header"><button className="back-button" onClick={onBack} aria-label="返回">←</button><h1>冰箱库存</h1></header>
         {notice && <div className="success-banner" role="status">{notice}</div>}
         {loading && <LoadingState rows={7} />}
         {error && <ErrorState message={error} onRetry={load} />}
-        {!loading && !error && items.length === 0 && <EmptyState title="冰箱还是空的" detail="采购完成后，真实库存批次会显示在这里。" action={<button className="primary-button compact" onClick={() => onTab('采购')}>去采购</button>} />}
-        {!loading && !error && items.length > 0 && (
-          <section className="feature-section inventory-list-section">
-            <div className="section-heading"><span>库存列表</span><small>按状态分组 · {items.length} 批</small></div>
-            <div className="card-row-list">
-              {items.map((item) => (
-                <div className="feature-row static inventory-row card-row" key={item.id}>
-                  <span><b>{item.name}</b><small>{amount(item.quantity)}{item.unit}{item.storage ? ` · ${item.storage}` : ''}{item.expiresOn ? ` · ${prettyDate(item.expiresOn)} 到期` : ''}</small></span>
-                  <span className="inventory-detail-label">{item.status === 'active' ? '详情' : '已用尽'}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-        <button className="primary-button inventory-receipt-button" onClick={onReceiptImport}>从小票添加库存</button>
+        {!loading && !error && <section className="inventory-anchor"><span>下次采购前，冰箱里还剩</span><div><b>{activeItems.length}</b><small>批库存</small></div><button onClick={onReceiptImport}>从小票添加库存</button></section>}
+        {!loading && !error && activeItems.length === 0 && <EmptyState title="冰箱还是空的" detail="请从厨房上传购物小票并确认商品，库存会显示在这里。采购清单只用于参考，不会直接写入库存。" action={<button className="primary-button compact" onClick={onReceiptImport}>从小票添加库存</button>} />}
+        {!loading && !error && activeItems.length > 0 && <>
+          {groups.filter((group) => group.items.length > 0).map((group) => <section className="inventory-storage-group" key={group.storage}>
+            <div className="section-heading"><span>{group.storage}</span><small>{group.items.length} 批</small></div>
+            <div className="inventory-lot-list">{group.items.map((item) => <div className="inventory-lot" key={item.id}>
+              <span><b>{item.name}</b><small>{purchaseAgeLabel(item.purchaseDate)}</small></span>
+              <strong><b>{amount(item.quantity)}</b><small>{item.unit}</small></strong>
+            </div>)}</div>
+          </section>)}
+        </>}
+        {!loading && !error && depletedItems.length > 0 && <section className="inventory-depleted">
+          <button aria-expanded={showDepleted} onClick={() => setShowDepleted((current) => !current)}>已用尽 {depletedItems.length} 批 <span>{showDepleted ? '⌃' : '⌄'}</span></button>
+          {showDepleted && <div className="inventory-lot-list">{depletedItems.map((item) => <div className="inventory-lot depleted" key={item.id}><span><b>{item.name}</b><small>{purchaseAgeLabel(item.purchaseDate)}</small></span><strong><b>{amount(item.quantity)}</b><small>{item.unit}</small></strong></div>)}</div>}
+        </section>}
       </div>
       <BottomNav active="厨房" onChange={onTab} />
     </main>

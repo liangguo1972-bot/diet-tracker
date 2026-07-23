@@ -64,14 +64,43 @@ describe('ReceiptReviewPage', () => {
       items: [{ ...receipt.items[0], confirmedQuantity: 1, confirmedUnit: '件', quantityNeedsConfirmation: true }],
     })
     render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
-    expect(await screen.findByText('小票数量需要复核')).toBeTruthy()
-    expect(screen.getByText(/金额核对通过/)).toBeTruthy()
-    expect(screen.getByText(/商品件数核对通过/)).toBeTruthy()
-    expect(screen.getByText(/还有 1 项数量待确认/)).toBeTruthy()
+    expect(await screen.findByText(/合计与商品件数已核对/)).toBeTruthy()
+    expect(screen.getByText(/还有 1 项数量需要确认/)).toBeTruthy()
     expect(screen.getByText('请确认数量')).toBeTruthy()
+    expect(screen.getByText('估')).toBeTruthy()
     expect((screen.getByRole('button', { name: /确认入库/ }) as HTMLButtonElement).disabled).toBe(false)
     fireEvent.change(screen.getByRole('spinbutton', { name: '数量' }), { target: { value: '2' } })
     await waitFor(() => expect(screen.queryByText('请确认数量')).toBeNull())
+  })
+
+  it('shows the purchase date as read-only and preserves the receipt original name', async () => {
+    vi.mocked(receiptAdapter.get).mockResolvedValue({ ...receipt, purchasedOn: '2026-07-20' })
+    render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
+    expect(await screen.findByText('7月20日')).toBeTruthy()
+    expect(screen.getByText('小票原文')).toBeTruthy()
+    expect(screen.getByText('A VERY LONG UNMATCHED PRODUCT NAME')).toBeTruthy()
+    expect(screen.queryByText('点击修改')).toBeNull()
+    expect(screen.queryByRole('button', { name: /7月20日/ })).toBeNull()
+  })
+
+  it('shows a verified Whole Foods quantity without converting its unit', async () => {
+    vi.mocked(receiptAdapter.get).mockResolvedValue({ ...receipt, items: [{ ...receipt.items[0], confirmedQuantity: 2.24, confirmedUnit: 'lb', quantitySource: 'whole_foods_verified', quantityNeedsConfirmation: false }] })
+    render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
+    expect(await screen.findByDisplayValue('2.24')).toBeTruthy()
+    expect(screen.getByText('lb')).toBeTruthy()
+    expect(screen.getByText('数量已核对')).toBeTruthy()
+    expect(screen.queryByText('估')).toBeNull()
+  })
+
+  it('allows a backend-prefilled conservative name to confirm without manual editing', async () => {
+    vi.mocked(receiptAdapter.update).mockResolvedValue(receipt)
+    vi.mocked(receiptAdapter.confirm).mockResolvedValue({ receiptImportId: 'receipt-1', status: 'confirmed', inventoryCount: 1, alreadyConfirmed: false })
+    render(<ReceiptReviewPage receiptImportId="receipt-1" onBack={vi.fn()} onConfirmed={vi.fn()} onTab={vi.fn()} onSessionExpired={vi.fn()} />)
+    await screen.findByDisplayValue('A VERY LONG UNMATCHED PRODUCT NAME')
+    const button = screen.getByRole('button', { name: /确认入库/ }) as HTMLButtonElement
+    expect(button.disabled).toBe(false)
+    fireEvent.click(button)
+    await waitFor(() => expect(receiptAdapter.update).toHaveBeenCalledWith('receipt-1', expect.arrayContaining([expect.objectContaining({ confirmedName: 'A VERY LONG UNMATCHED PRODUCT NAME' })])))
   })
 
   it('searches real ingredients and stores the selected ingredient id', async () => {
